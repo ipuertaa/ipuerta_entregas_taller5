@@ -102,6 +102,152 @@ typedef struct
 	volatile uint32_t APB2ENR;			//APB2 peripheral clock enable register		ADDR_OFFSET:	0x44
 	volatile uint32_t reserved6;		//reserved									ADDR_OFFSET:	0x48
 	volatile uint32_t reserved7;		//reserved
+	volatile uint32_t AHB1LPENR;		//AHB1 clock enable low power register		ADDR_OFFSET:	0x50
+	volatile uint32_t AHB2LPENR;		//AHB2 clock enable low power register		ADDR_OFFSET:	0x54
+	volatile uint32_t reserved8;		//reserved									ADDR_OFFSET:	0x58
+	volatile uint32_t reserved9;		//reserved									ADDR_OFFSET:	0x5C
+	volatile uint32_t APB1LPENR;		//APB1 clock enable low power register		ADDR_OFFSET:	0x60
+	volatile uint32_t APB2LPENR;		//APB2 clock enable low power register		ADDR_OFFSET:	0x64
+	volatile uint32_t reserved10;		//reserved									ADDR_OFFSET:	0x68
+	volatile uint32_t reserved11;		//reserved									ADDR_OFFSET:	0x6C
+	volatile uint32_t BDCR;				//backup domain control register			ADDR_OFFSET:	0x70
+	volatile uint32_t CSR;				//clock control and status register			ADDR_OFFSET:	0x74
+	volatile uint32_t reserved12;		//reserved									ADDR_OFFSET:	0x78
+	volatile uint32_t reserved13;		//reserved									ADDR_OFFSET:	0x7C
+	volatile uint32_t SSCGR;			//spread spectrum clock generation reg		ADDR_OFFSET:	0x80
+	volatile uint32_t PLLI2SCFGR;		//PLLI2S configuration register				ADDR_OFFSET:	0x84
+	volatile uint32_t reserved14;		//reserved									ADDR_OFFSET:	0x88
+	volatile uint32_t DCKCFGR;			//dedicated clocks configuration reg		ADDR_OFFSET:	0x8C
 
-}
+} RCC_RegDef_t;
+
+/* Se hace un puntero RCC_RegDef_t que apunta a la posicion exacta del periferico RCC, de forma que cada
+ * miembro de la estructura coincide con cada uno de los SFR en la memoria del MCU.
+ */
+#define RCC		((RCC_RegDef_t *) RCC_BASE_ADDR)
+
+// 6.3.9 RCC_AHB1ENR
+
+#define RCC_AHB1ENR_GPIOA_EN		0
+#define RCC_AHB1ENR_GPIOB_EN		1
+#define RCC_AHB1ENR_GPIOC_EN		2
+#define RCC_AHB1ENR_GPIOD_EN		3
+#define RCC_AHB1ENR_GPIOE_EN		4
+#define RCC_AHB1ENR_GPIOH_EN		7
+#define RCC_AHB1ENR_CRCEN			12
+#define RCC_AHB1ENR_DMA1_EN			21
+#define RCC_AHB1ENR_DMA2_EN			22
+
+//Fin de la descripcion de los elementos que componen el periferico RCC
+
+/* Inicio de la descripcion de los elementos que componen el periferico GPIOx
+ * Definicion de la estructura de datos que representa a cada uno de los registros
+ * que componen el periferico GPIO
+ * Debido a que el periferico GPIOx es muy simple, no es necesario crear la descripcion bit a bit
+ * de cada uno de los registros que componen dicho periferico.
+ */
+
+typedef struct
+{
+	volatile uint32_t MODER;		//port mode register					ADDR_OFFSET:	0x00
+	volatile uint32_t OTYPER;		//port output type register				ADDR_OFFSET:	0x04
+	volatile uint32_t OSPEEDR;		//port output speed register			ADDR_OFFSET:	0x08
+	volatile uint32_t PUPDR;		//port pull-up/pull-down register		ADDR_OFFSET:	0x0C
+	volatile uint32_t IDR;			//port input data register				ADDR_OFFSET:	0x10
+	volatile uint32_t ODR;			//port output data register				ADDR_OFFSET:	0x14
+	volatile uint32_t BSRR;			//port bit set/reset register			ADDR_OFFSET:	0x18
+	volatile uint32_t LCKR;			//port configuration lock register		ADDR_OFFSET:	0x1C
+	volatile uint32_t AFRL;			//alternate function low register		ADDR_OFFSET:	0x20
+	volatile uint32_t AFRH;			//alternate function high register		ADDR_OFFSET:	0x24
+
+} GPIOx_RegDef_t;
+
+/* Al igual que con el RCC, se crea un puntero a la estructura que define el GPIOx y se debe hacer que
+ * cada GPIOx quede ubicado exactamente sobre la posicion de memoria correcta.
+ * Como son varios perifericos GPIOx, es necesario hacer la definicion para cada uno.
+ *
+ * Cada elemento debe coincidir con su respectiva direccion base
+ */
+
+#define GPIOA			((GPIOx_RegDef_t *) GPIOA_BASE_ADDR)
+#define GPIOB			((GPIOx_RegDef_t *) GPIOB_BASE_ADDR)
+#define GPIOC			((GPIOx_RegDef_t *) GPIOC_BASE_ADDR)
+#define GPIOD			((GPIOx_RegDef_t *) GPIOD_BASE_ADDR)
+#define GPIOE			((GPIOx_RegDef_t *) GPIOE_BASE_ADDR)
+#define GPIOH			((GPIOx_RegDef_t *) GPIOH_BASE_ADDR)
+
+/* Valores estandar para las configuraciones
+ * 8.4.1 GPIOx_MODER (dos bit por cada pin)
+ */
+
+#define GPIO_MODE_IN		0
+#define GPIO_MODE_OUT		1
+#define GPIO_MODE_ALTFN		2
+#define GPIO_MODE_ANALOG	3
+
+//8.4.2 GPIOx_OTYPER (un bit por pin)
+
+#define GPIO_OTYPE_PUSHOULL		0
+#define GPIO_OTYPE_OPENDRAIN	1
+
+//8.4.3 GPIOx_OSPEEDR (dos bit por cada pin)
+
+#define GPIO_OSPEED_LOW			0
+#define GPIO_OSPEED_MEDIUM		1
+#define GPIO_OSPEED_FAST		2
+#define GPIO_OSPEED_HIGH		3
+
+//8.4.4 GPIOx_PUPDR (dos bit por cada pin)
+
+#define GPIO_PUPDR_NOTHING		0
+#define GPIO_PUPDR_PULLUP		1
+#define GPIO_PUPDR_PULLDOWN		2
+#define GPIO_PUPDR_RESERVED		3
+
+//8.4.5 GPIOx_IDR (un bit por pin) - este es el registro para leer el estado de un pin
+
+/*8.4.6 GPIOx_ODR (un bit por pin) - este es el registro para escribir el estado de un pin
+ * (1/0). Este registro puede ser escrito y leido desde el software , pero no garantiza
+ * una escritura "atómica", por lo cual es preferible utilizar el registro BSSR
+ */
+
+//Definicion de los nombres de los pines
+
+#define PIN_0		0
+#define PIN_1		1
+#define PIN_2		2
+#define PIN_3		3
+#define PIN_4		4
+#define PIN_5		5
+#define PIN_6		6
+#define PIN_7		7
+#define PIN_8		8
+#define PIN_9		9
+#define PIN_10		10
+#define PIN_11		11
+#define PIN_12		12
+#define PIN_13		13
+#define PIN_14		14
+#define PIN_15		15
+
+//Definicion de las estructuras alternativas
+
+#define AF0			0b0000
+#define AF1			0b0001
+#define AF2			0b0010
+#define AF3			0b0011
+#define AF4			0b0100
+#define AF5			0b0101
+#define AF6			0b0110
+#define AF7			0b0111
+#define AF8			0b1000
+#define AF9			0b1001
+#define AF10		0b1010
+#define AF11		0b1011
+#define AF12		0b1100
+#define AF13		0b1101
+#define AF14		0b1110
+#define AF15		0b1111
+
+
 #endif /* STM32F411XX_HAL_H_ */
