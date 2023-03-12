@@ -5,41 +5,41 @@
  *      Author: isabel
  */
 
+//Con esta librería es que puedo mejorar la notación de las variables
 #include <stdint.h>
 
-// Forma comun de definir variables. Tener cuidado con los bits de cada una
-//Las variables que defina por fuera serán variables globales. No sacan error
-char var1=0;
-int var2=0;
-short var3=0;
-long var4=0;
+//definir las variables
 
-// Con la siguiente forma nombro funciones con ayuda de la librería.
-//siempre debo indicar el numero de bits y poner el _t
+uint8_t variable_1 = 0b1011001;
+uint8_t variableResultado;
+uint8_t variableMultiplicacion = 5;
 
-uint8_t var5=0;
-int8_t var6=0;
-int16_t var7=0;
-int64_t var8 = 0;
-
-
-//Siempre debe dar un main.
-
+//en la variable_resultado sólo voy a guardar el valor
+//Quiero volver cero la cuarta posicion
 int main (void){
-// Si defino variables dentro del main y no las uso va a aparecer warnings
-//Para ver los errores, warnings, etc, click en el martillo.
-//Antes de debbugear debo tener 0 errores y warnings y conectar el micro
-	uint16_t testShift = 0b0101101010010101;
-	uint16_t testMask = 0b0000011100110101;
-	while(1){
-//Para definir un numero binario debo poner 0b-numero
-//Los shift a la izquierda duplican cada vez. Los de la derecha dividen
-//con ctrl-espacio me apareden las opciones disponibles cuando este escribiendo
 
-		testShift = testShift << 1;
-		var8 = testShift;
+	variableResultado = variable_1 & ~(1<<3);
 
+// Quiro que se vea reflejado el número nuevo en variable_resultado
+	variable_1 = variable_1 & ~(1<<3);
+
+//Que se actualice la misma variable con el cambio hecho
+
+//	variable_1 += 5;
+//Con esto puedo sumar 5 a la variable_1. Sirve para simplificar la notación y no tener que escribir
+//variable_1 dos veces
+
+	variable_1 &= ~(1<<3);
+//A variable_1 le estoy haciendo un and con el shift y guardándolo en variable_1
+
+//Los break points sirven para saltarse partes del código
+//Con resume corro todo el código o hasta un break point
+	variableMultiplicacion <<= 3;
+//El 3 indica cuántas veces multiplico, siempre es x2
+//Con shift a la izquierda, multiplico por 2 n veces
+
+	variableMultiplicacion >>= 2;
+//Con shift a la derecha divido entre 2 x número de veces
 	}
 
-}
 
