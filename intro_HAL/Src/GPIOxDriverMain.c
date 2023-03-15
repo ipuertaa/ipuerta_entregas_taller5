@@ -39,7 +39,7 @@
 int main(void){
 
 	//Definimos el handler para el PIN que deseamos configurar
-	GPIO_Handler_t handlerUserLedPin = {0}
+	GPIO_Handler_t handlerUserLedPin = {0};
 
 	//deseamos trabajar con el puerto GPIOA
 	handlerUserLedPin.pGPIOx = GPIOA;
@@ -48,7 +48,7 @@ int main(void){
 	handlerUserLedPin.GPIO_PinConfig.GPIO_PinOPType			= GPIO_OTYPE_PUSHPULL;
 	handlerUserLedPin.GPIO_PinConfig.GPIO_PinPuPdControl	= GPIO_PUPDR_NOTHING;
 	handlerUserLedPin.GPIO_PinConfig.GPIO_PinSpeed			= GPIO_OSPEED_MEDIUM;
-	handlerUserLedPin.GPIO_PinConfig.GPIO_PinAltFunMode		= AF0				//Ninguna función
+	handlerUserLedPin.GPIO_PinConfig.GPIO_PinAltFunMode		= AF0;				//Ninguna función
 
 
 	//cargamos la configuración al PIN específico
