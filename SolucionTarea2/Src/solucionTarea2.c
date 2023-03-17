@@ -304,6 +304,8 @@ int main(void){
  * de modo que se haga un SET y se encienda el LED respectivo. (0 en la parte alta del registro y 1 en
  * la baja)
  *
+ * La función se define en este archivo ya que quiero que sea una función propia de este programa.
+ *
  */
 
 void controlLeds(uint8_t numeroBinario){

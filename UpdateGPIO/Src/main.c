@@ -12,21 +12,33 @@
  ******************************************************************************
  */
 #include <stm32f4xx.h>
-
-
 #include <stdint.h>
+#include "GPIOxDriver.h"
 
-// Este proyecto es para configurar los nombres de los registros
-// para acceder a ellos más facilmente en el futuro
 
+//Def el elemento
+
+GPIO_Handler_t handlerLed2 = {0};
 
 int main(void){
 
-    /* Loop forever */
+
+	handlerLed2.pGPIOx		= GPIOA;
+	handlerLed2.GPIO_PinConfig.GPIO_PinNumber	= PIN_5;
+	handlerLed2.GPIO_PinConfig.GPIO_PinMode 	= GPIO_MODE_OUT;
+	handlerLed2.GPIO_PinConfig.GPIO_PinOPType	= GPIO_OTYPE_PUSHPULL;
+	handlerLed2.GPIO_PinConfig.GPIO_PinSpeed	= GPIO_OSPEED_FAST;
+	handlerLed2.GPIO_PinConfig.GPIO_PinPuPdControl	= GPIO_PUPDR_NOTHING;
+
+	GPIO_Config(&handlerLed2);
+
+	GPIO_WritePin(&handlerLed2, SET);
 	while(1){
+		GPIO_TooglePin(&handlerLed2);
 
+		for(int i = 0; i< 2000000; i++){
+			__NOP();
+		}
 	}
-
-	return 0;
 
 }

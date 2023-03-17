@@ -170,7 +170,7 @@ uint32_t GPIO_ReadPin(GPIO_Handler_t *pPinHandler){
  * Función TooglePin
  */
 
-void GPIOxTooglePin (GPIO_Handler_t *pPinHandler){
+void GPIO_TooglePin (GPIO_Handler_t *pPinHandler){
 
 	pPinHandler->pGPIOx->ODR ^= (SET <<pPinHandler->GPIO_PinConfig.GPIO_PinNumber);
 
