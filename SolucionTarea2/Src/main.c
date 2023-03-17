@@ -12,9 +12,9 @@
 
 
 /* PRIMER PUNTO:
+ *
  * El error corresponde a que, en la función GPIO_ReadPin() sólo se está trasladando hacia la posicion menos
- * significativa del registro IDR la posición particular que se quiere leer. (Por ejemplo, si quiero saber
- * el valor del pin 5, se mueve el bit 5 del registro hacia la posición cero)
+ * significativa del registro IDR el bit particular que se quiere leer.
  *
  * Sólo se está moviendo, pero lo que haya a la izquiera de ese bit, sigue estando, y al retornar PinValue no
  * se tendrá únicamente el dato de 1 bit, sino otros que no me interesan (Cuando quiero leer un pin,
@@ -27,9 +27,6 @@
  * Esto se hace añadiendo la siguiente línea de código en el GPIOxDRIVER.c
  *
  * pinValue &= (1<<0);
- *
- * En el respectivo archivo se realizó la corrección. Más adelante, en el while está la función con la que se
- * comprobó su funcionamiento.
  *
  */
 

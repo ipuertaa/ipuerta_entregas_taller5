@@ -12,23 +12,21 @@
  ******************************************************************************
  */
 #include <stm32f4xx.h>
+
+
 #include <stdint.h>
-#include "GPIOxDriver.h"
 
+// Este proyecto es para configurar los nombres de los registros
+// para acceder a ellos más facilmente en el futuro
 
-GPIO_Handler_t handlerLed2 = {0};
 
 int main(void){
-	//Configuración del pin asociado al led LD2: PA5
 
-		handlerOnBoardLed.pGPIOx 								= GPIOA;
-		handlerOnBoardLed.GPIO_PinConfig.GPIO_PinNumber			= PIN_5;
-		handlerOnBoardLed.GPIO_PinConfig.GPIO_PinMode			= GPIO_MODE_OUT;
-		handlerOnBoardLed.GPIO_PinConfig.GPIO_PinOPType			= GPIO_OTYPE_PUSHPULL;
-		handlerOnBoardLed.GPIO_PinConfig.GPIO_PinSpeed			= GPIO_OSPEED_FAST;
-		handlerOnBoardLed.GPIO_PinConfig.GPIO_PinAltFunMode		= AF0;
+    /* Loop forever */
+	while(1){
 
+	}
+
+	return 0;
 
 }
-
-
