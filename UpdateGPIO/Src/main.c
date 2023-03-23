@@ -14,16 +14,27 @@
 #include <stm32f4xx.h>
 #include <stdint.h>
 #include "GPIOxDriver.h"
+#include "BasicTimer.h"
 
 
 //Def el elemento
 
 GPIO_Handler_t handlerLed2 = {0};
+BasicTimer_Handler_t handlerTimer5 = {0};
+
+uint8_t flag = 0;
 
 int main(void){
 
+	handlerTimer5.ptrTIMx 							= TIM5;
+	handlerTimer5.TIMx_Config.TIMx_mode				= BTIMER_MODE_UP;
+	handlerTimer5.TIMx_Config.TIMx_speed			= BTIMER_SPEED_1ms;
+	handlerTimer5.TIMx_Config.TIMx_period			= 250;
+	handlerTimer5.TIMx_Config.TIMx_interruptEnable 	= BTIMER_ENABLE;
 
-	handlerLed2.pGPIOx		= GPIOA;
+	BasicTimer_Config(&handlerTimer5);
+
+	handlerLed2.pGPIOx							= GPIOA;
 	handlerLed2.GPIO_PinConfig.GPIO_PinNumber	= PIN_5;
 	handlerLed2.GPIO_PinConfig.GPIO_PinMode 	= GPIO_MODE_OUT;
 	handlerLed2.GPIO_PinConfig.GPIO_PinOPType	= GPIO_OTYPE_PUSHPULL;
@@ -32,13 +43,11 @@ int main(void){
 
 	GPIO_Config(&handlerLed2);
 
-	GPIO_WritePin(&handlerLed2, SET);
+//	GPIO_WritePin(&handlerLed2, SET);
 	while(1){
-		GPIO_TooglePin(&handlerLed2);
-
-		for(int i = 0; i< 2000000; i++){
-			__NOP();
-		}
 	}
 
+} //Fin main
+void BasicTimer5_Callback(void){
+	GPIO_TooglePin(&handlerLed2);
 }

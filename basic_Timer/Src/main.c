@@ -42,7 +42,7 @@ int main(void){
 	//ACTIVANDO LA SEÑAL DE RELOJ
 
 	RCC->APB1ENR &= ~RCC_APB1ENR_TIM2EN;
-	RCC->AHB1LPENR |= RCC_APB1ENR_TIM2EN;
+	RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
 
 	//DIRECCIÓN
 
@@ -67,9 +67,9 @@ int main(void){
 	while(1){
 		//cuando se actualiza el counter --> bandera. Después de que se active, yo debo desactivarlo
 
-//		if (TIM2->SR & TIM_SR_UIF){
-//			TIM2->SR &= ~TIM->SR_UIF;
-//
+		if (TIM2->SR & TIM_SR_UIF){
+			TIM2->SR &= ~TIM->SR_UIF;
+			toggle();
 
 		}
 
