@@ -15,17 +15,105 @@
  *
  ******************************************************************************
  */
+  // 				TALLER PUNTEROS
 
 #include <stdint.h>
 
-//Definicion de variables
-unsigned short estudiantes = 0;
-unsigned char counter_i = 0;
 
-int main(void)
-{
-    /* Loop forever */
-	while(1) {estudiantes++; counter_i = ~counter_i;
+
+int main (void){
+
+	uint8_t dato = 10;
+
+	//Si quiero darle el valor de dato a otra variable de 16 bits---> hacer casteo
+
+	uint16_t dato_16 = (uint16_t) dato;
+
+	//Puntero que apunta a la dirección de memoria de dato:
+
+	uint8_t *pDato = &dato;
+
+
+	//Si quiero almacenar la posición de memoria del puntero en una variable. También debo castear
+
+	uint32_t addrDato = (uint32_t)pDato;
+
+/* EL puntero no sólo sabe la posición de memoria, también puede acceder a lo que haya dentro
+ *
+ */
+
+	//Para acceder e incluso modificar el valor que se almacena en alguna dirección de memoria:
+
+//Si quiero almacenar el valor que hay dentro de alguna posición de memoria, debo crear alguna variable
+//del mismo tamaño y hacer variable = *puntero.
+
+
+	//Si quiero avanzar en posiciones de memoria:  puntero += 2 por ejemplo, avanza dos
+	//posiciones de memoria. SI el puntero apunta a una de 8 bits, va a saltar de 8 en 8
+	//y así sucesivamente.
+
+	*pDato = 20;  //Estoy cambiando el valor de la variable
+
+	pDato ++;
+
+	*pDato = 50; //Modifico otra posición de memoria porqie ya avancé.
+
+	pDato ++;
+
+	*pDato = 100;
+
+//    ARREGLOS: coleccion de datos o variables del mismo tipo. Dentro del [] va el #elementos
+
+	uint32_t miPrimerArreglo[5] = {12,15,0xABC, 0b11110011, 10};
+
+	//Arreglo si no sé cuantos elementos son: dejo el corchete vacío
+
+/* cuando se crea un arreglo, también es un puntero. El nombre del arreglo es un puntero a la primera
+ * posición del arreglo. Es un puntero que no puedo modificar.
+ *
+ */
+	uint32_t variable_auxiliar = 0;
+	//Acceder a valores del arreglo:
+
+	for (uint8_t i = 0; i<5; i++){
+
+		variable_auxiliar = *(miPrimerArreglo + i);
+	}
+
+	//También se pueden usar punteros para acceder a estructuras.
+
+	typedef struct{
+		uint8_t edad;
+		uint16_t estatura;
+		uint32_t notas[10];
+
+	}Estudiante_t;
+
+	Estudiante_t estudiante1 = {0};				//inicializando la estrucutra en cero.
+
+	//acceder a elementos de la estructura
+
+	estudiante1.edad = 22;
+	estudiante1.estatura = 173;
+	estudiante1.notas[0] = 45;   //también se podría *(estudiante1.notas)=45
+	estudiante1.notas[1] = 32;		//*(estudiante1.notas +1)
+
+	//Punteros que apuntan a estructuras:
+
+	Estudiante_t *pEstudiante1 = &estudiante1;
+
+	pEstudiante1->edad = 21;
+	pEstudiante1->estatura = 163;
+	pEstudiante1->notas[0] = 65;
+
+
+	//Arreglos para palabras. Código asqui
+//EL ultimo elemento del string siempre es nulo
+//comillas simples para elementos solitos
+	char miString[] = "Probando probando";
+
+	while(1){
 
 	}
 }
+

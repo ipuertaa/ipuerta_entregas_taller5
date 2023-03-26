@@ -30,7 +30,7 @@ int main(void){
 	handlerTimer5.TIMx_Config.TIMx_mode				= BTIMER_MODE_UP;
 	handlerTimer5.TIMx_Config.TIMx_speed			= BTIMER_SPEED_1ms;
 	handlerTimer5.TIMx_Config.TIMx_period			= 250;
-	handlerTimer5.TIMx_Config.TIMx_interruptEnable 	= BTIMER_ENABLE;
+	handlerTimer5.TIMx_Config.TIMx_interruptEnable 	= BTIMER_INTERRUPT_ENABLE;
 
 	BasicTimer_Config(&handlerTimer5);
 

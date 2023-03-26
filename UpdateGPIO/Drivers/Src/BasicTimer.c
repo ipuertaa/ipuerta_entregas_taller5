@@ -116,41 +116,43 @@ void BasicTimer_Config(BasicTimer_Handler_t *ptrBTimerHandler){
 	/* 5. Activamos la interrupción debida al Timerx Utilizado
 	 * Modificar el registro encargado de activar la interrupcion generada por el TIMx*/
 
-	if(ptrBTimerHandler->TIMx_Config.TIMx_interruptEnable == BTIMER_ENABLE){
+	if(ptrBTimerHandler->TIMx_Config.TIMx_interruptEnable == BTIMER_INTERRUPT_ENABLE){
 		//Limpiamos y ponemos un 1 en el registro que activa la interrupción.
 		ptrTimerUsed->DIER &= ~TIM_DIER_UIE;
 		ptrTimerUsed->DIER |= TIM_DIER_UIE;
+
+		/* 6. Activamos el canal del sistema NVIC para que lea la interrupción*/
+		if(ptrBTimerHandler->ptrTIMx == TIM2){
+			// Activando en NVIC para la interrupción del TIM2
+			NVIC_EnableIRQ(TIM2_IRQn);
+		}
+		else if(ptrBTimerHandler->ptrTIMx == TIM3){
+			// Activando en NVIC para la interrupción del TIM3
+			NVIC_EnableIRQ(TIM3_IRQn);
+		}
+		else if(ptrBTimerHandler->ptrTIMx == TIM4){
+			// Activando en NVIC para la interrupción del TIM3
+			NVIC_EnableIRQ(TIM4_IRQn);
+		}
+		else if(ptrBTimerHandler->ptrTIMx == TIM5){
+			// Activando en NVIC para la interrupción del TIM3
+			NVIC_EnableIRQ(TIM5_IRQn);
+		}
+		else{
+			__NOP();
+		}
+
+		/* 7. Volvemos a activar las interrupciones del sistema */
+		__enable_irq();
+
 	}
+
 	else{
 		//Ponemos un cero para que en el registro no se active la interrupción.
 		ptrTimerUsed->DIER &= ~TIM_DIER_UIE;
 	}
 
-
-	/* 6. Activamos el canal del sistema NVIC para que lea la interrupción*/
-	if(ptrBTimerHandler->ptrTIMx == TIM2){
-		// Activando en NVIC para la interrupción del TIM2
-		NVIC_EnableIRQ(TIM2_IRQn);
-	}
-	else if(ptrBTimerHandler->ptrTIMx == TIM3){
-		// Activando en NVIC para la interrupción del TIM3
-		NVIC_EnableIRQ(TIM3_IRQn);
-	}
-	else if(ptrBTimerHandler->ptrTIMx == TIM4){
-		// Activando en NVIC para la interrupción del TIM3
-		NVIC_EnableIRQ(TIM4_IRQn);
-	}
-	else if(ptrBTimerHandler->ptrTIMx == TIM5){
-		// Activando en NVIC para la interrupción del TIM3
-		NVIC_EnableIRQ(TIM5_IRQn);
-	}
-	else{
-		__NOP();
-	}
-
-	/* 7. Volvemos a activar las interrupciones del sistema */
-	__enable_irq();
-}
+} //Fin BasicTimer_Config
 
 __attribute__((weak)) void BasicTimer2_Callback(void){
 	  /* NOTE : This function should not be modified, when the callback is needed,
