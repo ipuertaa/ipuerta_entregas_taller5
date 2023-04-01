@@ -556,17 +556,14 @@ void extInt_Config(EXTI_Config_t *extiConfig){
 	/* 4.0 Seleccionamos el tipo de flanco */
 	if(extiConfig->edgeType == EXTERNAL_INTERRUPT_FALLING_EDGE){
 		/* Falling Trigger selection register*/
-        EXTI->RTSR = 0; //Desactivar todos los posibles flancos de subida
-        EXTI->FTSR = 0;	//Llevar a un valor conocido
-
+        EXTI->RTSR &= ~(SET << extiConfig->pGPIOHandler->GPIO_PinConfig.GPIO_PinNumber);
         EXTI->FTSR |= (SET << extiConfig->pGPIOHandler->GPIO_PinConfig.GPIO_PinNumber);
 
 	} //Fin if Falling edge
 
 	else{ /* Rising Trigger selection register*/
-        EXTI->FTSR = 0;	//Desactivar los posibles flancos de bajada
-        EXTI->RTSR = 0;	//Llevando a un valor conocido
 
+        EXTI->FTSR &= (SET << extiConfig->pGPIOHandler->GPIO_PinConfig.GPIO_PinNumber);
         EXTI->RTSR |= (SET << extiConfig->pGPIOHandler->GPIO_PinConfig.GPIO_PinNumber);
 	} //Fin else Risign edge
 
@@ -575,7 +572,7 @@ void extInt_Config(EXTI_Config_t *extiConfig){
 
 	/* 6.0 Activamos la interrupción del canal que estamos configurando */
 	// Interrupt Mask register
-	EXTI->IMR = 0;
+
 	EXTI->IMR |= (SET << extiConfig->pGPIOHandler->GPIO_PinConfig.GPIO_PinNumber);
 
 	/* 6.1 Matriculamos la interrupción en el NVIC para el canal correspondiente,
@@ -609,26 +606,54 @@ void extInt_Config(EXTI_Config_t *extiConfig){
 		break;
 	}
 
-	case 5:
-	case 6:
-	case 7:
-	case 8:
+	case 5:{
+		__NVIC_EnableIRQ(EXTI9_5_IRQn);
+		break;
+	}
+	case 6:{
+		__NVIC_EnableIRQ(EXTI9_5_IRQn);
+		break;
+	}
+	case 7:{
+		__NVIC_EnableIRQ(EXTI9_5_IRQn);
+		break;
+	}
+	case 8:{
+		__NVIC_EnableIRQ(EXTI9_5_IRQn);
+		break;
+	}
 	case 9: {
 		__NVIC_EnableIRQ(EXTI9_5_IRQn);
 		break;
 	}
 
-	case 10:
-	case 11:
-	case 12:
-	case 13:
-	case 14:
+	case 10:{
+		__NVIC_EnableIRQ(EXTI15_10_IRQn);
+		break;
+	}
+	case 11:{
+		__NVIC_EnableIRQ(EXTI15_10_IRQn);
+		break;
+	}
+	case 12:{
+		__NVIC_EnableIRQ(EXTI15_10_IRQn);
+		break;
+	}
+	case 13:{
+		__NVIC_EnableIRQ(EXTI15_10_IRQn);
+		break;
+	}
+	case 14:{
+		__NVIC_EnableIRQ(EXTI15_10_IRQn);
+		break;
+	}
 	case 15: {
 		__NVIC_EnableIRQ(EXTI15_10_IRQn);
 		break;
 	}
 
 	default: {
+		__NOP();
 		break;
 	}
 

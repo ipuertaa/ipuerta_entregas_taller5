@@ -215,19 +215,6 @@ void init_hardware(void){
 
 	/* 		CONFIGURACIÓN DE LAS INTERRUPCIONES			*/
 
-	//Configuración del GPIO del botón
-
-	handlerButton.pGPIOx =GPIOC;
-	handlerButton.GPIO_PinConfig.GPIO_PinNumber = PIN_9;
-	handlerButton.GPIO_PinConfig.GPIO_PinMode =GPIO_MODE_IN;
-	handlerButton.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_PUPDR_NOTHING;
-
-	//Configuración del EXTI del botón
-
-	handlerExtiButton.pGPIOHandler = &handlerButton;
-	handlerExtiButton.edgeType = EXTERNAL_INTERRUPT_FALLING_EDGE;
-
-	extInt_Config(&handlerExtiButton);
 
 
 	//Configuración del GPIO del encoder
@@ -246,11 +233,28 @@ void init_hardware(void){
 
 
 
+	//Configuración del GPIO del botón
+
+	handlerButton.pGPIOx		= GPIOC;
+	handlerButton.GPIO_PinConfig.GPIO_PinNumber = PIN_9;
+	handlerButton.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_IN;
+	handlerButton.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_PUPDR_NOTHING;
+
+	//Configuración del EXTI del boton
+	handlerExtiButton.pGPIOHandler = &handlerButton;
+	handlerExtiButton.edgeType = EXTERNAL_INTERRUPT_FALLING_EDGE;
+
+	extInt_Config(&handlerExtiButton);
+
+
+
+
+
 }	//Fin init_hardware
 
-void callback_extInt9(void){		//Callback del botón
-	auxBoton++;
+void callback_extInt9(void){		//Callback del boton
 
+	auxBoton++;
 }
 
 void callback_extInt8(void){		//Callback del encoder
