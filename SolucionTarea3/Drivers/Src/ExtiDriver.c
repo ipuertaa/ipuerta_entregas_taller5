@@ -823,6 +823,9 @@ void EXTI9_5_IRQHandler(void){
 		//Llamamos al callback
 		callback_extInt9();
 	}
+	else{
+		__NOP();
+	}
 
 }	//Fin EXTI9_5_IRQHandler
 
@@ -874,6 +877,9 @@ void EXTI15_10_IRQHandler(void){
 		// llamamos al callback
 		callback_extInt15();
 
+	}
+	else{
+		__NOP();
 	}
 
 }	//Fin EXTI15_10_IRQHandler
