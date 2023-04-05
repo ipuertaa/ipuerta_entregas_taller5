@@ -40,31 +40,48 @@ EXTI_Config_t handlerExtiEncoder = {0};
 EXTI_Config_t handlerExtiButton = {0};
 
 
-uint8_t auxBoton = 0;
+uint8_t modo = 0;
+uint8_t banderaEntrada = 0;
+uint8_t banderaBarrido = 0;
+uint8_t incremento = 0;
+uint8_t disminuir = 0;
+
+uint8_t inicioCulebrita = 0;
+int8_t conteoCulebrita = 0;
+
+
+uint8_t auxRebote = 0;
 uint8_t auxEncoder = 0;
 int64_t auxConteo = 0;
 uint8_t auxClock = 0;
 uint8_t unidades = 0;
 uint8_t decenas = 0;
-uint8_t banderaIncremento = 0;
-uint8_t banderaDecremento = 0;
 
 
-uint8_t banderaEntrada = 0;
-uint8_t banderaBarrido = 0;
 
+
+
+uint8_t entradaCulebrita = 0;
+
+
+
+//#define UNIDADES  1
+//#define DECENAS   2
 
 
 
 //Cabeceras de funciones
 void init_hardware(void);
 void comparacion(void);
-void incrementoUnidades(void);
-void incrementoDecenas(void);
+void variarUnidades(void);
+void variarDecenas(void);
 
 void mostrarDecenas(void);
 void mostrarUnidades(void);
 
+void display (int tipo, char  segmento);
+void culebrita(void);
+void clearLeds(void);
 
 
 void num0(void);
@@ -89,62 +106,96 @@ int main(void){
 
 	while(1){
 
-		if (banderaEntrada == 0){
 
-			switch (banderaBarrido){
-			case 1: {//Encender decenas
-				GPIO_WritePin(&handlerTransistor1, SET);
-				GPIO_WritePin(&handlerTransistor2, RESET);
+		switch (modo){
 
-				if (banderaIncremento == 1){
-					incrementoDecenas();
-				}	//Fin if incremento
-				else if (banderaDecremento == 1){
-					incrementoDecenas();
-				}	//Fin if else decremento
-				else {
+		case 0:{
+
+			//Se ejecuta el modo conteo
+			if (banderaEntrada == 0){
+
+				switch (banderaBarrido){
+				case 1: {//Encender decenas
+					GPIO_WritePin(&handlerTransistor1, SET);
+					GPIO_WritePin(&handlerTransistor2, RESET);
+
+					if (incremento == 1){
+						variarDecenas();
+					}	//Fin if incremento
+					else if (incremento == 0){
+						variarDecenas();
+					}	//Fin if else decremento
+					else {
+						__NOP();
+					}
+
+					banderaEntrada = 1;		//para que no entre infinitas veces en el while
+					break;
+				}	//Fin caso 1
+
+				case 2:{	//Encender unidades
+
+					GPIO_WritePin(&handlerTransistor1, RESET);
+					GPIO_WritePin(&handlerTransistor2, SET);
+
+					if (incremento == 1){
+						variarUnidades();
+					}	//Fin if incremento
+					else if (incremento == 0){
+						variarUnidades();
+					} 	//Fin if else decremento
+					else {
+						__NOP();
+					}
+
+					banderaBarrido = 0;		//para que se reinicie el barrio
+					banderaEntrada = 1;
+					break;
+
+				}		//Fin caso 2
+				default:{
 					__NOP();
+					break;
 				}
+				}		//Fin switch
+			}	//Fin if bandera entrada
 
-				banderaEntrada = 1;		//para que no entre infinitas veces en el while
-				break;
-			}	//Fin caso 1
-
-			case 2:{	//Encender unidades
-
-				GPIO_WritePin(&handlerTransistor1, RESET);
-				GPIO_WritePin(&handlerTransistor2, SET);
-
-				if (banderaIncremento == 1){
-					incrementoUnidades();
-				}	//Fin if incremento
-				else if (banderaDecremento == 1){
-					incrementoUnidades();
-				} 	//Fin if else decremento
-				else {
-					__NOP();
-				}
-
-				banderaBarrido = 0;		//para que se reinicie el barrio
-				banderaEntrada = 1;
-				break;
-
-			}		//Fin caso 2
-			default:{
+			else {
 				__NOP();
-				break;
 			}
-			}		//Fin switch
-		}	//Fin if bandera entrada
 
-		else {
-			__NOP();
-		}
+		}	//Fin modo = 0 = modo conteo
+
+		case 1:{
+
+			if (entradaCulebrita == 0){
 
 
-	}//Fin while
 
-} //Fin main
+				culebrita();
+				entradaCulebrita = 1;
+			}
+
+			else{
+				__NOP();
+			}
+
+
+		}	// Fin modo = 1 = modo culebrita
+
+
+
+
+
+
+
+
+
+	}	//Fin switch modo
+
+} 	// FIN WHILE
+}	// FIN MAIN
+
 
 
 
@@ -311,7 +362,7 @@ void init_hardware(void){
 	//Configuración del EXTI del encoder
 
 	handlerExtiEncoder.pGPIOHandler = &handlerEncoder;
-	handlerExtiEncoder.edgeType = EXTERNAL_INTERRUPT_FALLING_EDGE;
+	handlerExtiEncoder.edgeType = EXTERNAL_INTERRUPT_RISING_EDGE;
 
 	extInt_Config(&handlerExtiEncoder);
 
@@ -326,7 +377,7 @@ void init_hardware(void){
 
 	//Configuración del EXTI del boton
 	handlerExtiButton.pGPIOHandler = &handlerButton;
-	handlerExtiButton.edgeType = EXTERNAL_INTERRUPT_FALLING_EDGE;
+	handlerExtiButton.edgeType = EXTERNAL_INTERRUPT_RISING_EDGE;
 
 	extInt_Config(&handlerExtiButton);
 
@@ -549,7 +600,7 @@ void mostrarUnidades(void){
 
 
 
-void incrementoDecenas(void){
+void variarDecenas(void){
 
 	if (auxConteo <= 0){
 		auxConteo = 0;
@@ -613,7 +664,7 @@ void incrementoDecenas(void){
 	}
 }	//Fin incrementoDecenas
 
-void incrementoUnidades(void){
+void variarUnidades(void){
 
 	if (auxConteo <= 0){
 		unidades = 0;
@@ -674,23 +725,198 @@ void incrementoUnidades(void){
 }	//Fin IncrementoUnidades
 
 
+void display (int tipo, char  segmento){
+
+	if (tipo == 1){
+		GPIO_WritePin(&handlerTransistor1, RESET);
+		GPIO_WritePin(&handlerTransistor2, SET);
+	}
+	else if (tipo == 2){
+		GPIO_WritePin(&handlerTransistor1, SET);
+		GPIO_WritePin(&handlerTransistor2, RESET);
+	}
+	else {
+		__NOP();
+	}
+
+	switch (segmento){
+
+	case 'A':{
+		GPIO_WritePin(&handlerLedA, RESET);
+		GPIO_WritePin(&handlerLedB, SET);
+		GPIO_WritePin(&handlerLedC, SET);
+		GPIO_WritePin(&handlerLedD, SET);
+		GPIO_WritePin(&handlerLedE, SET);
+		GPIO_WritePin(&handlerLedF, SET);
+		GPIO_WritePin(&handlerLedG, SET);
+		break;
+	}
+	case 'B':{
+		GPIO_WritePin(&handlerLedA, SET);
+		GPIO_WritePin(&handlerLedB, RESET);
+		GPIO_WritePin(&handlerLedC, SET);
+		GPIO_WritePin(&handlerLedD, SET);
+		GPIO_WritePin(&handlerLedE, SET);
+		GPIO_WritePin(&handlerLedF, SET);
+		GPIO_WritePin(&handlerLedG, SET);
+		break;
+	}
+	case 'C':{
+
+		GPIO_WritePin(&handlerLedA, SET);
+		GPIO_WritePin(&handlerLedB, SET);
+		GPIO_WritePin(&handlerLedC, RESET);
+		GPIO_WritePin(&handlerLedD, SET);
+		GPIO_WritePin(&handlerLedE, SET);
+		GPIO_WritePin(&handlerLedF, SET);
+		GPIO_WritePin(&handlerLedG, SET);
+		break;
+	}
+	case 'D':{
+
+		GPIO_WritePin(&handlerLedA, SET);
+		GPIO_WritePin(&handlerLedB, SET);
+		GPIO_WritePin(&handlerLedC, SET);
+		GPIO_WritePin(&handlerLedD, RESET);
+		GPIO_WritePin(&handlerLedE, SET);
+		GPIO_WritePin(&handlerLedF, SET);
+		GPIO_WritePin(&handlerLedG, SET);
+		break;
+	}
+	case 'E':{
+
+		GPIO_WritePin(&handlerLedA, SET);
+		GPIO_WritePin(&handlerLedB, SET);
+		GPIO_WritePin(&handlerLedC, SET);
+		GPIO_WritePin(&handlerLedD, SET);
+		GPIO_WritePin(&handlerLedE, RESET);
+		GPIO_WritePin(&handlerLedF, SET);
+		GPIO_WritePin(&handlerLedG, SET);
+		break;
+	}
+	case 'F':{
+
+		GPIO_WritePin(&handlerLedA, SET);
+		GPIO_WritePin(&handlerLedB, SET);
+		GPIO_WritePin(&handlerLedC, SET);
+		GPIO_WritePin(&handlerLedD, SET);
+		GPIO_WritePin(&handlerLedE, SET);
+		GPIO_WritePin(&handlerLedF, RESET);
+		GPIO_WritePin(&handlerLedG, SET);
+	}
+	default:{
+		__NOP();
+		break;
+	}
+}	//Fin switch
+
+}	//Fin display
+
+void culebrita(void){
+
+	if(conteoCulebrita < 0){		//Tope de la culebrita CCW
+		conteoCulebrita = 11;
+	}
+
+	switch (conteoCulebrita){
+
+	case 0:{
+		display(1,'A');
+		break;
+	}
+	case 1:{
+		display(2,'A');
+		break;
+	}
+	case 2:{
+		display(2,'F');
+		break;
+	}
+	case 3:{
+		display(2,'E');
+		break;
+	}
+	case 4:{
+		display(2,'D');
+		break;
+	}
+	case 5:{
+		display(1,'E');
+		break;
+	}
+	case 6:{
+		display(1,'F');
+		break;
+	}
+	case 7:{
+		display(2,'B');
+		break;
+	}
+	case 8:{
+		display(2,'C');
+		break;
+	}
+	case 9:{
+		display(1,'D');
+		break;
+	}
+	case 10:{
+		display(1, 'C');
+		break;
+	}
+	case 11:{
+		display(1, 'B');
+		break;
+	}
+	case 12:{
+		display(1, 'A');
+		break;
+	}
+	default:{
+		__NOP();
+		break;
+	}
+	}	//Fin switch
+
+	if(conteoCulebrita >= 12){
+		conteoCulebrita = 0;			//Para que se reinicie la culebrita
+	}
 
 
+
+
+}	//Fin culebrita
 
 
 void comparacion(void){
 
-	if (auxEncoder > auxClock){
-		banderaIncremento = 1;
-		banderaDecremento = 0;
-		auxConteo++;
+	if (auxEncoder == auxClock){	//CW
+		incremento = 1;
+//		disminuir = 0;
+
+		if (modo == 0){
+			auxConteo++;
+		}
+		else if (modo == 1){
+			conteoCulebrita++;
+		}
+		else{
+			__NOP();
+		}
 
 	}
-	else if (auxEncoder == auxClock){
-		banderaDecremento = 1;
-		banderaIncremento = 0;
-		auxConteo--;
-
+	else if (auxEncoder != auxClock){	//CCW
+//		disminuir = 1;
+		incremento = 0;
+		if (modo == 0){
+			auxConteo--;
+		}
+		else if (modo == 1){
+			conteoCulebrita--;
+		}
+		else{
+			__NOP();
+		}
 	}
 	else{
 		__NOP();
@@ -698,7 +924,7 @@ void comparacion(void){
 
 	auxEncoder = 0;
 
-}
+}	//FIN COMPARACION
 
 
 
@@ -706,13 +932,18 @@ void callback_extInt8(void){		//Callback del encoder
 	auxEncoder = 1;
 	auxClock = GPIO_ReadPin(&handlerClock);
 	comparacion();
+	entradaCulebrita = 0;
 
 }
 
 
 void callback_extInt9(void){		//Callback del boton
+	modo ^= 1;
+	GPIO_WritePin(&handlerTransistor1, SET);
+	GPIO_WritePin(&handlerTransistor2, SET);
+	entradaCulebrita = 0;
 
-	auxBoton++;
+
 }
 
 
