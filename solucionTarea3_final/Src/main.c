@@ -32,12 +32,12 @@ GPIO_Handler_t handlerButton 				= {0};			//Botón del encoder
 GPIO_Handler_t handlerEncoder 				= {0};			//Data del encoder
 GPIO_Handler_t handlerClock 				= {0};			//Clock del encoder
 
-BasicTimer_Handler_t handlerBlinkyTimer 	= {0};		//Timer para el blinky del led de estado
-BasicTimer_Handler_t handlerTransistores 	= {0};		//Timer para el barrido de los transistores
+BasicTimer_Handler_t handlerBlinkyTimer 	= {0};			//Timer para el blinky del led de estado
+BasicTimer_Handler_t handlerTransistores 	= {0};			//Timer para el barrido de los transistores
 
 
-EXTI_Config_t handlerExtiEncoder 			= {0};		//EXTI para el data del encoder
-EXTI_Config_t handlerExtiButton 			= {0};		//EXTI para el botón del encoder
+EXTI_Config_t handlerExtiEncoder 			= {0};			//EXTI para el data del encoder
+EXTI_Config_t handlerExtiButton 			= {0};			//EXTI para el botón del encoder
 
 
 //Las siguientes son variables auxiliares para el desarollo del código.
@@ -45,17 +45,12 @@ EXTI_Config_t handlerExtiButton 			= {0};		//EXTI para el botón del encoder
 uint8_t modo 				= 0;
 uint8_t banderaEntrada 		= 0;
 uint8_t banderaBarrido 		= 0;
-uint8_t incremento 			= 0;
-uint8_t disminuir 			= 0;
-
-uint8_t inicioCulebrita 	= 0;
 int8_t  conteoCulebrita 	= 0;
 uint8_t auxEncoder 			= 0;
 int64_t auxConteo 			= 0;
 uint8_t auxClock 			= 0;
 uint8_t unidades 			= 0;
 uint8_t decenas 			= 0;
-
 uint8_t entradaCulebrita 	= 0;
 
 
@@ -63,12 +58,9 @@ uint8_t entradaCulebrita 	= 0;
 
 void init_hardware(void);
 void comparacion(void);
-
-void variarUnidades(void);
-void variarDecenas(void);
-
-void mostrar(uint8_t tipo);
-void display (int tipo, char  segmento);
+void variacion(uint8_t tipoUni_Dec);
+void mostrar(uint8_t tipoUni_Dec);
+void display (uint8_t tipoUni_Dec, char  segmento);
 void culebrita(void);
 void clearLeds(void);
 void num0(void);
@@ -96,7 +88,7 @@ int main(void){
 
 		switch (modo){
 
-		//El modo = 0, corresponde al modo conteo
+		//modo = 0, corresponde al modo conteo
 		case 0:{
 
 			if (banderaEntrada == 0){
@@ -107,7 +99,9 @@ int main(void){
 
 					GPIO_WritePin(&handlerTransistor1, SET);
 					GPIO_WritePin(&handlerTransistor2, RESET);
-					variarDecenas();
+
+					variacion(1);
+
 					banderaEntrada = 1;		//Para que no entre infinitas veces en el while
 					break;
 				}
@@ -116,7 +110,9 @@ int main(void){
 
 					GPIO_WritePin(&handlerTransistor1, RESET);
 					GPIO_WritePin(&handlerTransistor2, SET);
-					variarUnidades();
+
+					variacion(2);
+
 					banderaBarrido = 0;		//Para que se reinicie el barrio
 					banderaEntrada = 1;
 					break;
@@ -134,7 +130,7 @@ int main(void){
 			}
 		}	//Fin modo conteo
 
-		//El caso = 1, corresponde al modo culebrita
+		//modo = 1, corresponde al modo culebrita
 		case 1:{
 
 			if (entradaCulebrita == 0){
@@ -146,7 +142,7 @@ int main(void){
 				__NOP();
 			}
 		}	// Fin modo culebrita
-	}	//Fin switch modo
+	}	//Fin modo
 
 } 	// FIN WHILE
 }	// FIN MAIN
@@ -290,17 +286,17 @@ void init_hardware(void){
 
 
 	/*  CONFIGURACIÓN DE LAS INTERRUPCIONES
-	 * Para configurar una interrupción pimero debo cargar en el handler la configuración del pin
+	 * Para configurar una interrupción pimero debo cargar en el handler la configuración del GPIO
 	 * correspondiente como entrada digital, posteriormente, se carga la configuración del EXTI
-	 * correspondiente a ese número de pin, el cual, recibirá la posición de memoria de la
-	 * configuración del PIN (para saber de cuál pin viene la interrupción) y también se configura si
+	 * de ese número de pin, el cual, recibirá la posición de memoria de la
+	 * configuración del GPIO (para saber de cuál pin viene la interrupción) y también se configura si
 	 * la interrupción se dará cada flanco de subida o de bajada.
 	 *
 	 * Tanto el dato, clock y el botón del encoder están usualmente en alto, y al generar la interrupción
 	 * se pasa a un cero lógico (es decir, flancos de bajada)
 	 *
 	 * Como utilicé el circuito integrado Schmitt trigger inversor SN74HC14N, configuré las interrupciones
-	 * para que se dieran cada flanco de subida
+	 * para que se dieran cada flanco de subida.
 	 *
 	 *
 	 * Un Schmitt trigger se utiliza para evitar errores causados por señales ruidosas.
@@ -471,7 +467,12 @@ void num9(void){
 
 /* Para la solución del problema, se consideró por separado las decenas y las unidades, la función
  * mostrar, que recibe como parámetro las unidades o las decenas muestra el valor correspondiente llamando
- * a la función numX */
+ * a la función numX
+ *
+ * Al recibir el parámetro tipoUni_Dec, se puede utilizar para que la función muestre el valor de unidades
+ * o decenas según sea necesario. Esto es clave porque, si por ejemplo necesito mostrar el número 13,
+ * debe aparecer un 1 en el segmento correspondiente a las unidades y un 3 en el correspondiente a las decenas
+ * */
 
 void mostrar(uint8_t tipoUni_Dec){
 	switch (tipoUni_Dec){
@@ -524,141 +525,230 @@ void mostrar(uint8_t tipoUni_Dec){
 }	//Fin mostrar
 
 
-/* Mediante la función variarDecenas y variarUnidades, se evalúa el número que va llevando
- * el conteo para identificar la decena o unidad que se debe mostrar, llamando a la función mostrar
- * con el parámetro unidades o decenas según sea el caso
+/* Solución ejercicio #4
+ * La función variación es clave para llevar a cabo el modo conteo.
+ *
+ * Cada vez que se gira el encoder, el conteo se va acumulando en la variable auxConteo (si el conteo
+ * aumenta o disminuye se verá en una función más adelante).
+ *
+ * Dependiendo del valor de la variable auxConteo, se identifica cuál debe ser el valor de unidades
+ * y decenas. Por ejemplo para el número 15, sería un 1 en las decenas y un 5 en las unidades.
+ *
+ * Posteriormente, con un condicional if else se evalúa, si se desea mostrar el valor correspondiente
+ * a las decenas (tipoUni_Dec = 1) o a las unidades (tipoUni_Dec = 2).
+ * Finalmente, se llama a la función mostrar, con el tipo correspondiente.
  *
  * Con el primer if, se garantiza que el contador no baje de cero y con el último else if se garantiza
  * que el contador no aumente más de 99*/
 
-void variarDecenas(void){
+void variacion(uint8_t tipoUni_Dec){
 
 	if (auxConteo <= 0){		//Límite inferior
 		auxConteo = 0;
 		unidades = 0;
-		mostrar(decenas);
-	}
-	else if ((auxConteo > 0) && (auxConteo < 10)){
 		decenas = 0;
-		mostrar(decenas);
-	}
-	else if ((auxConteo == 10) || (auxConteo < 20)){
-		decenas = 1;
-		mostrar(decenas);
-	}
-	else if ((auxConteo == 20) || (auxConteo < 30)){
-		decenas = 2;
-		mostrar(decenas);
-	}
-	else if ((auxConteo == 30) || (auxConteo < 40)){
-		decenas = 3;
-		mostrar(decenas);
-	}
-	else if ((auxConteo == 40) || (auxConteo < 50)){
-		decenas = 4;
-		mostrar(decenas);
-	}
-	else if ((auxConteo == 50) || (auxConteo < 60)){
-		decenas = 5;
-		mostrar(decenas);
-	}
-	else if ((auxConteo == 60) || (auxConteo < 70)){
-		decenas = 6;
-		mostrar(decenas);
-	}
-	else if ((auxConteo == 70) || (auxConteo < 80)){
-		decenas = 7;
-		mostrar(decenas);
-	}
-	else if ((auxConteo == 80) || (auxConteo < 90)){
-		decenas = 8;
-		mostrar(decenas);
-	}
-	else if ((auxConteo == 90) || (auxConteo < 100)){
-		decenas = 9;
-		mostrar(decenas);
-	}
-	else if(auxConteo >= 100){		//Límite superior
-		auxConteo = 99;
-		decenas = 9;
-		mostrar(decenas);
-	}
-	else {
-		__NOP();
-	}
-}	//Fin variarDecenas
 
-void variarUnidades(void){
-
-	if (auxConteo <= 0){		//Límite inferior
-		unidades = 0;
-		mostrar(unidades);
+		if (tipoUni_Dec == 1){
+			mostrar(decenas);
+		}
+		else if(tipoUni_Dec == 2){
+			mostrar(unidades);
+		}
+		else{
+			__NOP();
+		}
 	}
+
 	else if ((auxConteo > 0) && (auxConteo < 10)){
 		unidades = auxConteo;
-		mostrar(unidades);
+		decenas = 0;
+
+		if (tipoUni_Dec == 1){
+			mostrar(decenas);
+		}
+		else if(tipoUni_Dec == 2){
+			mostrar(unidades);
+		}
+		else{
+			__NOP();
+		}
 	}
+
 	else if ((auxConteo == 10) || (auxConteo < 20)){
 		unidades = auxConteo - 10;
-		mostrar(unidades);
+		decenas = 1;
+
+		if (tipoUni_Dec == 1){
+			mostrar(decenas);
+		}
+		else if(tipoUni_Dec == 2){
+			mostrar(unidades);
+		}
+		else{
+			__NOP();
+		}
 	}
+
 	else if ((auxConteo == 20) || (auxConteo < 30)){
+		decenas = 2;
 		unidades = auxConteo - 20;
-		mostrar(unidades);
+
+		if (tipoUni_Dec == 1){
+			mostrar(decenas);
+		}
+		else if(tipoUni_Dec == 2){
+			mostrar(unidades);
+		}
+		else{
+			__NOP();
+		}
 	}
+
 	else if ((auxConteo == 30) || (auxConteo < 40)){
 		unidades = auxConteo - 30;
-		mostrar(unidades);
+		decenas = 3;
+
+		if (tipoUni_Dec == 1){
+			mostrar(decenas);
+		}
+		else if(tipoUni_Dec == 2){
+			mostrar(unidades);
+		}
+		else{
+			__NOP();
+		}
 	}
+
 	else if ((auxConteo == 40) || (auxConteo < 50)){
 		unidades = auxConteo - 40;
-		mostrar(unidades);
+		decenas = 4;
+
+		if (tipoUni_Dec == 1){
+			mostrar(decenas);
+		}
+		else if(tipoUni_Dec == 2){
+			mostrar(unidades);
+		}
+		else{
+			__NOP();
+		}
 	}
+
 	else if ((auxConteo == 50) || (auxConteo < 60)){
 		unidades = auxConteo - 50;
-		mostrar(unidades);
+		decenas = 5;
+
+		if (tipoUni_Dec == 1){
+			mostrar(decenas);
+		}
+		else if(tipoUni_Dec == 2){
+			mostrar(unidades);
+		}
+		else{
+			__NOP();
+		}
 	}
+
 	else if ((auxConteo == 60) || (auxConteo < 70)){
 		unidades = auxConteo - 60;
-		mostrar(unidades);
+		decenas = 6;
+
+		if (tipoUni_Dec == 1){
+			mostrar(decenas);
+		}
+		else if(tipoUni_Dec == 2){
+			mostrar(unidades);
+		}
+		else{
+			__NOP();
+		}
 	}
+
 	else if ((auxConteo == 70) || (auxConteo < 80)){
 		unidades = auxConteo - 70;
-		mostrar(unidades);
+		decenas = 7;
+
+		if (tipoUni_Dec == 1){
+			mostrar(decenas);
+		}
+		else if(tipoUni_Dec == 2){
+			mostrar(unidades);
+		}
+		else{
+			__NOP();
+		}
 	}
+
 	else if ((auxConteo == 80) || (auxConteo < 90)){
 		unidades = auxConteo - 80;
-		mostrar(unidades);
+		decenas = 8;
+
+		if (tipoUni_Dec == 1){
+			mostrar(decenas);
+		}
+		else if(tipoUni_Dec == 2){
+			mostrar(unidades);
+		}
+		else{
+			__NOP();
+		}
 	}
+
 	else if ((auxConteo == 90) || (auxConteo < 100)){
 		unidades = auxConteo - 90;
-		mostrar(unidades);
+		decenas = 9;
+
+		if (tipoUni_Dec == 1){
+			mostrar(decenas);
+		}
+		else if(tipoUni_Dec == 2){
+			mostrar(unidades);
+		}
+		else{
+			__NOP();
+		}
 	}
+
 	else if(auxConteo >= 100){		//Límite superior
 		auxConteo = 99;
 		unidades = 9;
-		mostrar(unidades);
+		decenas = 9;
+
+		if (tipoUni_Dec == 1){
+			mostrar(decenas);
+		}
+		else if(tipoUni_Dec == 2){
+			mostrar(unidades);
+		}
+		else{
+			__NOP();
+		}
 	}
 	else {
 		__NOP();
 	}
-}	//Fin variarUnidades
+}	//Fin variacion
 
 
-/*	Mediante la función display se muestra el segmento de LED correspondiente para cada posición de la
- * culebrita. Si tipo es 1, corresponde a encender las unidades y si tipo es 2 corresponde a encender
- * las decenas.
+
+
+/*	La función display es utilizada en el modo culebrita. Esta función recibe el tipoUni_Dec, en este caso,
+ * tipoUni_Dec = 1, corresponde a mostrar las unidades y tipoUni_Dec = 2, corresponde a mostrar las decenas.
+ * Con las funciones GPIO_WritePin, se configuran los transistores para que se encienda y apague el
+ * correspondiente.
  *
  * En segmento, se indica con letras, cuál segmento es el que se quiere encender, por ejemplo, el segmento
- * 'g' es el del medio. */
+ * 'g' es el del medio.
+ *
+ * Al combinar estos dos parámetros se puede encender de forma controlada, cada segmento del display.*/
 
-void display (int tipo, char  segmento){
+void display (uint8_t tipoUni_Dec, char  segmento){
 
-	if (tipo == 1){
+	if (tipoUni_Dec == 1){
 		GPIO_WritePin(&handlerTransistor1, RESET);
 		GPIO_WritePin(&handlerTransistor2, SET);
 	}
-	else if (tipo == 2){
+	else if (tipoUni_Dec == 2){
 		GPIO_WritePin(&handlerTransistor1, SET);
 		GPIO_WritePin(&handlerTransistor2, RESET);
 	}
@@ -734,6 +824,24 @@ void display (int tipo, char  segmento){
 }
 }	//Fin display
 
+/*	Solución al ejercicio #6
+ * La función culebrita, es la que indica la secuencia a llevar a cabo dependiendo del conteo que se esté
+ *  llevando.
+ *
+ *  De nuevo, más adelante se muestra cómo se hizo la diferenciación entre sentido horario y antiohorario de
+ *  giro del encoder.
+ *
+ *  Cada vez que gira el encoder se va almacenando el conteo en la variable conteoCulebria (debe ser una
+ *  variable de conteo diferente a la del modo mostrar números para que se pueda guardar el estado de los dos
+ *  modos de forma independiente)
+ *
+ *  La función culebrita, toma este valor de conteo y lo evalúa:
+ *  - Verifica sus posiciones extremas, para que el conteo siempre esté entre los valores deseados, es
+ *  decir, la culebrita sea cíclica.
+ *  - Dependiendo de ese valor de conteo, muestra el segmento de LED particular, ya sea en el lado de las
+ *  decenas o de las unidades. Esto siguiendo la secuencia que fue indicada.
+ *
+ */
 void culebrita(void){
 
 	if(conteoCulebrita < 0){		//Tope de la culebrita CCW
@@ -801,20 +909,35 @@ void culebrita(void){
 	}	//Fin switch
 
 	if(conteoCulebrita >= 12){
-		conteoCulebrita = 0;			//Para que se reinicie la culebrita
+		conteoCulebrita = 0;			//Tope de la culebrita CW
 	}
-
-
-
-
 }	//Fin culebrita
 
 
+
+/* La función comparación junto con el callback_extInt8 es la solución al ejercicio #3 de la tarea.
+ *
+ * Esta función compara el valor de auxEncoder, correspondiente al pin dato del encoder y el valor
+ * auxClock que corresponde al pin clock del encoder.
+ *
+ * Desde el callback, cada vez que sucede la interrupción dada por el giro del encoder, la variable
+ * auxEncoder se hace igual a 1, y la variable auxClock guarda el estado del reloj en ese instante.
+ *
+ * Al visualizar la señales en el pulseView, se pudo apreciar que:
+ * - Sentido CW: cuando se da el flanco de subida en el pin dato, el reloj está en estado alto.
+ * - Sentido CCW: cuando se da el flanco de subida en el pin dato, el reloj está en estado bajo.
+ *
+ * Con esto, se puede saber la dirección de giro, dependiendo entonces, si es CW o CCW, se suma
+ * o resta a las variables que almacenan el conteo.
+ * Incrementar o decrementar hace parte de la solución al ejercicio #4
+ *
+ * Para que cada conteo (el de la culebrita y el de los números) sea independiente, se evalúa cuál modo
+ * está activo (modo 0 para el conteo o modo 1 para la culebrita) y se suma la variable correspondiente.
+ *
+ */
 void comparacion(void){
 
 	if (auxEncoder == auxClock){	//CW
-		incremento = 1;
-//		disminuir = 0;
 
 		if (modo == 0){
 			auxConteo++;
@@ -828,8 +951,7 @@ void comparacion(void){
 
 	}
 	else if (auxEncoder != auxClock){	//CCW
-//		disminuir = 1;
-		incremento = 0;
+
 		if (modo == 0){
 			auxConteo--;
 		}
@@ -845,30 +967,31 @@ void comparacion(void){
 	}
 
 	auxEncoder = 0;
-
 }	//FIN COMPARACION
 
 
-
-void callback_extInt8(void){		//Callback del encoder
+/* Solución al ejercicio #2 -> Implementación del EXTI  */
+void callback_extInt8(void){						//Callback del encoder
 	auxEncoder = 1;
 	auxClock = GPIO_ReadPin(&handlerClock);
 	comparacion();
 	entradaCulebrita = 0;
-
 }
 
-
-void callback_extInt9(void){		//Callback del boton
+/* Solución al ejercicio #5.
+ * Con el callback del botón se puede identificar en qué modo se está trabajando.
+ * Si no se ha apretado el botón, será el modo 0, correspondiente al conteo
+ * Si se aprieta una vez, será el modo 1, correspondiente a la culebrita
+ * Si se aprieta otra vez, será nuevamente el modo cero */
+void callback_extInt9(void){						//Callback del boton
 	modo ^= 1;
 	GPIO_WritePin(&handlerTransistor1, SET);
 	GPIO_WritePin(&handlerTransistor2, SET);
 	entradaCulebrita = 0;
-
-
 }
 
 
+/* Solución al ejercicio #1 -> Implementación del led de estado  */
 void BasicTimer2_Callback(void){
 	GPIO_TooglePin(&handlerLED2);
 }
@@ -877,6 +1000,24 @@ void BasicTimer3_Callback(void){
 	banderaBarrido++;
 	banderaEntrada = 0;
 }
+
+
+/* las variables entradaCulebrita y banderaEntrada, son utilizadas para hacer un barrido controlado.
+ * Como el código se lleva a cabo dentro del while infinito, no es deseable que se esté repitiendo todo
+ * el proceso indefinidamente, sino que sólo se lleve a cabo cada vez que sea necesario. Así que con estas,
+ * se garantiza la entrada y la salida.
+ *
+ *
+ * Por ejemplo, los transistores tienen que hacer una especie de barrido (se deben intercalar) cada que el
+ * timer3 dé la orden.
+ * banderaBarrido con el valor 1 o 2, indica cuál transistor es el que se va a encender (esto se hace en
+ * el main) y con bandera entrada garantizo que, dentro de un mismo ciclo del timer no se esté repitiendo
+ * el encendido y apagado de los leds.
+ *
+ * La función entradaCulebrita también garantiza que la culebrita se actualice sólo cuando la interrupción
+ * externa lo indique
+ *
+ */
 
 
 
