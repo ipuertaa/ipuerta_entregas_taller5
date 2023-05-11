@@ -1,16 +1,21 @@
-/*
- * PadMatricial.c
- *
- *  Created on: Mar 27, 2023
- *      Author: isabel
+/**
+ ******************************************************************************
+ * @file           : main.c
+ * @author         : Isabel Puerta Alvarez
+
+	Solución básica de u  proyecto con librerías externas
+ ******************************************************************************
  */
 
-
-#include <stdint.h>
 #include <stm32f4xx.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdbool.h>
 #include "GPIOxDriver.h"
 #include "BasicTimer.h"
 #include "ExtiDriver.h"
+#include "USARTxDriver.h"
+
 
 /* 3 pines de propósito general configurados como columnas serán salidas a un nivel alto.
  * 4 filas serán configuradas como entradas y serán las que causarán la interrupción.
@@ -103,27 +108,27 @@ int main(void){
 			__NOP();
 		}
 
-		if (flag1 == 1){
-
-			switch(banderaBarrido){
-			case 1:{
-				estado = 1;
-				break;
-			}
-			case 2:{
-				estado = 2;
-				break;
-			}
-			case 3:{
-				estado = 3;
-				break;
-			}
-			default:{
-				break;
-			}
-			}
-		}
-		else if (flag)
+//		if (flag1 == 1){
+//
+//			switch(banderaBarrido){
+//			case 1:{
+//				estado = 1;
+//				break;
+//			}
+//			case 2:{
+//				estado = 2;
+//				break;
+//			}
+//			case 3:{
+//				estado = 3;
+//				break;
+//			}
+//			default:{
+//				break;
+//			}
+//			}
+//		}
+//		else if (flag)
 
 	}	//Fin while
 }
@@ -275,19 +280,19 @@ void BasicTimer3_Callback(void){
 
 }
 
-void callback_extInt1(void){
+void callback_extInt1(void){	// F1
 	flagFilas = 1;
 }
 
-void callback_extInt15(void){
+void callback_extInt15(void){	//F2
 	flagFilas = 2;
 }
 
-void callback_extInt14(void){
+void callback_extInt14(void){	//F3
 	flagFilas = 3;
 }
 
-void callback_extInt13(void){
+void callback_extInt13(void){	//F4
 	flagFilas = 4;
 }
 

@@ -9,7 +9,7 @@
 #include "GPIOxDriver.h"
 
 
-// Haciendo prueba con PC15
+
 void extInt_Config(EXTI_Config_t *extiConfig){
 
 	/* 1.0 Se carga la configuración, que debe ser el PINx como entrada "simple" */
