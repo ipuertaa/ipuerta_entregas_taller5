@@ -8,65 +8,85 @@
  */
 
 #include <stm32f4xx.h>
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdbool.h>
+
 #include "GPIOxDriver.h"
 #include "BasicTimer.h"
 #include "ExtiDriver.h"
 #include "USARTxDriver.h"
-
+#include "PwmDriver.h"
 
 // Definición de los handlers necesarios
 
 GPIO_Handler_t handlerBlinkyLED			= {0};
 GPIO_Handler_t handlerUserButton		= {0};
 BasicTimer_Handler_t handlerBlinkyTimer = {0};
+
+//Elementos para la comunicación serial
 USART_Handler_t handlerUsart2			= {0};
-GPIO_Handler_t handlerPinTX = {0};
-GPIO_Handler_t handlerPinRX = {0};
-
-
-
-//Definición de variables
+GPIO_Handler_t handlerPinTX 			= {0};
+GPIO_Handler_t handlerPinRX 			= {0};
 uint8_t sendMsg = 0;
 uint8_t usart2DataReceived = 0;
+
+//Elementos para el PWM
+GPIO_Handler_t handlerPinPWMChannel		= {0};
+PWM_Handler_t handlerSignalPWM			= {0};
+
+
+uint16_t duttyValue = 1500;
+
 char bufferMsg[64] = {0};
 
-float valueA = 123.4567f;
-float valueB = 987.7654f;
-float valueC= 0.0f;
+
 
 
 //Definición de funciones
 void init_hardware(void);
 
 
-//Definición de las cabeceras de funciones
-
-//void initSystem(void);
-
 //Función principal del programa
 
 int main(void){
 
 	//Inicializar todos los elementos
-
 	init_hardware();
 
 
 	while(1){
 
 		if(usart2DataReceived != '\0'){
+			if(usart2DataReceived == 'D'){
 
-			valueC = valueA * valueB;
-			sprintf(bufferMsg, "ValueC = %#.3f \n", valueC);
+				//Derecha
+				duttyValue = 2000;
+				updateDuttyCycle(&handlerSignalPWM, duttyValue);
+			}
+
+			if(usart2DataReceived == 'C'){
+				duttyValue = 1500;
+				updateDuttyCycle(&handlerSignalPWM, duttyValue);
+			}
+
+			if(usart2DataReceived == 'I'){
+
+				duttyValue = 10000;
+				updateDuttyCycle(&handlerSignalPWM, duttyValue);
+
+			}
+
+			//Imprimir mensaje
+
+			sprintf(bufferMsg, "Dutty = %u \n", (unsigned int)duttyValue);
 			writeMsg(&handlerUsart2, bufferMsg);
 
+			//Cambiamos el estado del elemento que controla la entrada
 			usart2DataReceived = '\0';
+
 		}
-
-
 	}	//Fin while
 
 
@@ -119,6 +139,30 @@ void init_hardware(void){
 	handlerUsart2.USART_Config.USART_enableIntTX = USART_TX_INTERRUPT_DISABLE;
 
 	USART_Config(&handlerUsart2);
+
+	//Configuración del PWM
+	handlerPinPWMChannel.pGPIOx					= GPIOC;
+	handlerPinPWMChannel.GPIO_PinConfig.GPIO_PinNumber		= PIN_7;
+	handlerPinPWMChannel.GPIO_PinConfig.GPIO_PinMode		= GPIO_MODE_ALTFN;
+	handlerPinPWMChannel.GPIO_PinConfig.GPIO_PinOPType		= GPIO_OTYPE_PUSHPULL;
+	handlerPinPWMChannel.GPIO_PinConfig.GPIO_PinPuPdControl	= GPIO_PUPDR_NOTHING;
+	handlerPinPWMChannel.GPIO_PinConfig.GPIO_PinSpeed		= GPIO_OSPEED_FAST;
+	handlerPinPWMChannel.GPIO_PinConfig.GPIO_PinAltFunMode	= AF2;
+
+	GPIO_Config(&handlerPinPWMChannel);
+
+	//Configurar el timer para que genere la señal PWM
+	handlerSignalPWM.ptrTIMx			= TIM3;
+	handlerSignalPWM.config.channel		= PWM_CHANNEL_2;
+	handlerSignalPWM.config.periodo		= 20000;
+	handlerSignalPWM.config.prescaler	= 16;
+
+	pwm_Config(&handlerSignalPWM);
+
+	//Activamos la señal
+	enableOutput(&handlerSignalPWM);
+	startPwmSignal(&handlerSignalPWM);
+
 }
 
 
