@@ -72,7 +72,6 @@ void USART_Config(USART_Handler_t *ptrUsartHandler){
 	// 2.3 Configuramos el tamaño del dato
     if(ptrUsartHandler->USART_Config.USART_datasize == USART_DATASIZE_8BIT){
 
-    	//PREGUNTAR SI ES LA FORMA COMPLICADA O NO
     	ptrUsartHandler->ptrUSARTx->CR1 &= ~(USART_CR1_M);
     }
 

@@ -145,10 +145,9 @@ void pwm_Config(PWM_Handler_t *ptrPwmHandler){
 		break;
 	}
 
-	/* 6. Activamos la salida seleccionada */
-	enableOutput(ptrPwmHandler);
-
 	}// fin del switch-case
+	/* 6. Activamos la salida seleccionada */
+//	enableOutput(ptrPwmHandler);
 }
 
 /* Función para activar el Timer y activar todo el módulo PWM */
@@ -174,21 +173,21 @@ void enableOutput(PWM_Handler_t *ptrPwmHandler) {
 	}
 
 	case PWM_CHANNEL_2: {
-		// Activamos la salida del canal 1
+		// Activamos la salida del canal 2
 		ptrPwmHandler->ptrTIMx->CCER |= TIM_CCER_CC2E;
 		ptrPwmHandler->ptrTIMx->CCER &= ~TIM_CCER_CC2P;
 		break;
 	}
 
 	case PWM_CHANNEL_3: {
-		// Activamos la salida del canal 1
+		// Activamos la salida del canal 3
 		ptrPwmHandler->ptrTIMx->CCER |= TIM_CCER_CC3E;
 		ptrPwmHandler->ptrTIMx->CCER &= ~TIM_CCER_CC3P;
 		break;
 	}
 
 	case PWM_CHANNEL_4: {
-		// Activamos la salida del canal 1
+		// Activamos la salida del canal 4
 		ptrPwmHandler->ptrTIMx->CCER |= TIM_CCER_CC4E;
 		ptrPwmHandler->ptrTIMx->CCER &= ~TIM_CCER_CC4P;
 		break;
@@ -268,4 +267,40 @@ void updateDuttyCycle(PWM_Handler_t *ptrPwmHandler, uint16_t newDutty){
 
 	// Llamamos a la fucnión que cambia el dutty y cargamos el nuevo valor
 	setDuttyCycle(ptrPwmHandler);
+}
+
+
+//Función encargada de desactivar cada uno de los canales con los que cuenta el TimerX
+void disableOutput(PWM_Handler_t *ptrPwmHandler){
+	switch (ptrPwmHandler->config.channel) {
+	case PWM_CHANNEL_1: {
+		// Desactivamos la salida del canal 1
+		ptrPwmHandler->ptrTIMx->CCER &= ~TIM_CCER_CC1E;
+		break;
+	}
+
+	case PWM_CHANNEL_2: {
+		// Desactivamos la salida del canal 2
+		ptrPwmHandler->ptrTIMx->CCER &= ~TIM_CCER_CC2E;
+		break;
+	}
+
+	case PWM_CHANNEL_3: {
+		// Desactivamos la salida del canal 3
+		ptrPwmHandler->ptrTIMx->CCER &= ~TIM_CCER_CC3E;
+		break;
+	}
+
+	case PWM_CHANNEL_4: {
+		// Desactivamos la salida del canal 4
+		ptrPwmHandler->ptrTIMx->CCER &= ~TIM_CCER_CC4E;
+		break;
+	}
+
+	default: {
+		break;
+	}
+	}
+
+
 }

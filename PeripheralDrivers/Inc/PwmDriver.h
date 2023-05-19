@@ -44,4 +44,7 @@ void enableOutput(PWM_Handler_t *ptrPwmHandler);
 void startPwmSignal(PWM_Handler_t *ptrPwmHandler);
 void stopPwmSignal(PWM_Handler_t *ptrPwmHandler);
 
+void disableOutput(PWM_Handler_t *ptrPwmHandler);
+
+
 #endif /* PWMDRIVER_H_ */

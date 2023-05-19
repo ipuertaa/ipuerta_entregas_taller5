@@ -12,12 +12,16 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <math.h>
 
 #include "GPIOxDriver.h"
 #include "BasicTimer.h"
 #include "ExtiDriver.h"
 #include "USARTxDriver.h"
 #include "PwmDriver.h"
+
+#include "arm_math.h"
+
 
 // Definición de los handlers necesarios
 
@@ -32,14 +36,14 @@ GPIO_Handler_t handlerPinRX 			= {0};
 uint8_t sendMsg = 0;
 uint8_t usart2DataReceived = 0;
 
-//Elementos para el PWM
-GPIO_Handler_t handlerPinPWMChannel		= {0};
-PWM_Handler_t handlerSignalPWM			= {0};
-
-
-uint16_t duttyValue = 1500;
 
 char bufferMsg[64] = {0};
+
+//Para la utilización del valor absoluto
+
+float32_t srcNumber[4] = {-0.987, 32.26, -45.21, -987.321};
+float32_t destNumber[4] = {0};
+uint32_t dataSize = 0;
 
 
 
@@ -52,6 +56,9 @@ void init_hardware(void);
 
 int main(void){
 
+	//Activar el co-procesador
+	SCB->CPACR |= (0xF << 20);
+
 	//Inicializar todos los elementos
 	init_hardware();
 
@@ -59,35 +66,22 @@ int main(void){
 	while(1){
 
 		if(usart2DataReceived != '\0'){
-			if(usart2DataReceived == 'D'){
 
-				//Derecha
-				duttyValue = 2000;
-				updateDuttyCycle(&handlerSignalPWM, duttyValue);
-			}
+			dataSize = 4;
+			arm_abs_f32(srcNumber, destNumber, dataSize);
 
-			if(usart2DataReceived == 'C'){
-				duttyValue = 1500;
-				updateDuttyCycle(&handlerSignalPWM, duttyValue);
-			}
-
-			if(usart2DataReceived == 'I'){
-
-				duttyValue = 10000;
-				updateDuttyCycle(&handlerSignalPWM, duttyValue);
-
-			}
-
-			//Imprimir mensaje
-
-			sprintf(bufferMsg, "Dutty = %u \n", (unsigned int)duttyValue);
+			sprintf(bufferMsg, "Valor abs de %#.2f = %#.2f \n", srcNumber[0], destNumber[0]);
 			writeMsg(&handlerUsart2, bufferMsg);
 
-			//Cambiamos el estado del elemento que controla la entrada
 			usart2DataReceived = '\0';
 
+
 		}
+
+
 	}	//Fin while
+
+	return 0;
 
 
 }	//Fin main
@@ -139,30 +133,6 @@ void init_hardware(void){
 	handlerUsart2.USART_Config.USART_enableIntTX = USART_TX_INTERRUPT_DISABLE;
 
 	USART_Config(&handlerUsart2);
-
-	//Configuración del PWM
-	handlerPinPWMChannel.pGPIOx					= GPIOC;
-	handlerPinPWMChannel.GPIO_PinConfig.GPIO_PinNumber		= PIN_7;
-	handlerPinPWMChannel.GPIO_PinConfig.GPIO_PinMode		= GPIO_MODE_ALTFN;
-	handlerPinPWMChannel.GPIO_PinConfig.GPIO_PinOPType		= GPIO_OTYPE_PUSHPULL;
-	handlerPinPWMChannel.GPIO_PinConfig.GPIO_PinPuPdControl	= GPIO_PUPDR_NOTHING;
-	handlerPinPWMChannel.GPIO_PinConfig.GPIO_PinSpeed		= GPIO_OSPEED_FAST;
-	handlerPinPWMChannel.GPIO_PinConfig.GPIO_PinAltFunMode	= AF2;
-
-	GPIO_Config(&handlerPinPWMChannel);
-
-	//Configurar el timer para que genere la señal PWM
-	handlerSignalPWM.ptrTIMx			= TIM3;
-	handlerSignalPWM.config.channel		= PWM_CHANNEL_2;
-	handlerSignalPWM.config.periodo		= 20000;
-	handlerSignalPWM.config.prescaler	= 16;
-
-	pwm_Config(&handlerSignalPWM);
-
-	//Activamos la señal
-	enableOutput(&handlerSignalPWM);
-	startPwmSignal(&handlerSignalPWM);
-
 }
 
 
