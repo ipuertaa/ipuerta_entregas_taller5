@@ -102,21 +102,21 @@ void pwm_Config(PWM_Handler_t *ptrPwmHandler){
 	case PWM_CHANNEL_3:{
 		// Seleccionamos como salida el canal
 		//Limpiamos los bits correspondientes
-		ptrPwmHandler->ptrTIMx->CCMR1 &= ~TIM_CCMR2_CC3S;
+		ptrPwmHandler->ptrTIMx->CCMR2 &= ~TIM_CCMR2_CC3S;
 
 		//Para que sea una salida más rapida
-		ptrPwmHandler->ptrTIMx->CCMR1 |= TIM_CCMR2_OC3FE;
+		ptrPwmHandler->ptrTIMx->CCMR2 |= TIM_CCMR2_OC3FE;
 
 		// Configuramos el canal como PWM
 		//Limpiamos esas posiciones de memoria
-		ptrPwmHandler->ptrTIMx->CCMR1 &= ~TIM_CCMR2_OC3M;
+		ptrPwmHandler->ptrTIMx->CCMR2 &= ~TIM_CCMR2_OC3M;
 
 		//Con un 110 se activa el PWM modo 1
-		ptrPwmHandler->ptrTIMx->CCMR1 |= TIM_CCMR2_OC3M_2;
-		ptrPwmHandler->ptrTIMx->CCMR1 |= TIM_CCMR2_OC3M_1;
+		ptrPwmHandler->ptrTIMx->CCMR2 |= TIM_CCMR2_OC3M_2;
+		ptrPwmHandler->ptrTIMx->CCMR2 |= TIM_CCMR2_OC3M_1;
 
 		// Activamos la funcionalidad de pre-load
-		ptrPwmHandler->ptrTIMx->CCMR1 |= TIM_CCMR2_OC3PE;
+		ptrPwmHandler->ptrTIMx->CCMR2 |= TIM_CCMR2_OC3PE;
 
 		break;
 	}
@@ -124,21 +124,21 @@ void pwm_Config(PWM_Handler_t *ptrPwmHandler){
 	case PWM_CHANNEL_4:{
 		// Seleccionamos como salida el canal
 		//Limpiamos los bits correspondientes
-		ptrPwmHandler->ptrTIMx->CCMR1 &= ~TIM_CCMR2_CC4S;
+		ptrPwmHandler->ptrTIMx->CCMR2 &= ~TIM_CCMR2_CC4S;
 
 		//Para que sea una salida más rapida
-		ptrPwmHandler->ptrTIMx->CCMR1 |= TIM_CCMR2_OC4FE;
+		ptrPwmHandler->ptrTIMx->CCMR2 |= TIM_CCMR2_OC4FE;
 
 		// Configuramos el canal como PWM
 		//Limpiamos esas posiciones de memoria
-		ptrPwmHandler->ptrTIMx->CCMR1 &= ~TIM_CCMR2_OC4M;
+		ptrPwmHandler->ptrTIMx->CCMR2 &= ~TIM_CCMR2_OC4M;
 
 		//Con un 110 se activa el PWM modo 1
-		ptrPwmHandler->ptrTIMx->CCMR1 |= TIM_CCMR2_OC4M_2;
-		ptrPwmHandler->ptrTIMx->CCMR1 |= TIM_CCMR2_OC4M_1;
+		ptrPwmHandler->ptrTIMx->CCMR2 |= TIM_CCMR2_OC4M_2;
+		ptrPwmHandler->ptrTIMx->CCMR2 |= TIM_CCMR2_OC4M_1;
 
 		// Activamos la funcionalidad de pre-load
-		ptrPwmHandler->ptrTIMx->CCMR1 |= TIM_CCMR2_OC4PE;
+		ptrPwmHandler->ptrTIMx->CCMR2 |= TIM_CCMR2_OC4PE;
 	}
 
 	default:{

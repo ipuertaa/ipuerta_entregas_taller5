@@ -175,57 +175,60 @@ void init_hardware(void){
 
 	// CONFIGURACIÓN DE LOS MOTORES -> PWM
 
-	// Motor 1
-	handlerMotor1.pGPIOx								= GPIOC;
-	handlerMotor1.GPIO_PinConfig.GPIO_PinNumber			= PIN_6;
-	handlerMotor1.GPIO_PinConfig.GPIO_PinMode			= GPIO_MODE_ALTFN;
-	handlerMotor1.GPIO_PinConfig.GPIO_PinOPType			= GPIO_OTYPE_PUSHPULL;
-	handlerMotor1.GPIO_PinConfig.GPIO_PinPuPdControl	= GPIO_PUPDR_NOTHING;
-	handlerMotor1.GPIO_PinConfig.GPIO_PinSpeed			= GPIO_OSPEED_FAST;
-	handlerMotor1.GPIO_PinConfig.GPIO_PinAltFunMode		= AF2;
-
-	GPIO_Config(&handlerMotor1);
-
-	//Configurar el timer para que genere la señal PWM
-	handlerPWM_Motor1.ptrTIMx							= TIM3;
-	handlerPWM_Motor1.config.channel					= PWM_CHANNEL_1;
-	handlerPWM_Motor1.config.periodo					= 20000;
-	handlerPWM_Motor1.config.prescaler					= 16;
-	handlerPWM_Motor1.config.duttyCicle					= 1000;
-
-	pwm_Config(&handlerPWM_Motor1);
-
-	//Activamos la señal del motor 1
-	enableOutput(&handlerPWM_Motor1);
-	startPwmSignal(&handlerPWM_Motor1);
-
-
-//	//Motor 2
-//	handlerMotor2.pGPIOx								= GPIOC;
-//	handlerMotor2.GPIO_PinConfig.GPIO_PinNumber			= PIN_9;
-//	handlerMotor2.GPIO_PinConfig.GPIO_PinMode			= GPIO_MODE_ALTFN;
-//	handlerMotor2.GPIO_PinConfig.GPIO_PinOPType			= GPIO_OTYPE_PUSHPULL;
-//	handlerMotor2.GPIO_PinConfig.GPIO_PinPuPdControl	= GPIO_PUPDR_NOTHING;
-//	handlerMotor2.GPIO_PinConfig.GPIO_PinSpeed			= GPIO_OSPEED_FAST;
-//	handlerMotor2.GPIO_PinConfig.GPIO_PinAltFunMode		= AF2;
+	// Motor 1. Funciona. MG 995
+//	handlerMotor1.pGPIOx								= GPIOC;
+//	handlerMotor1.GPIO_PinConfig.GPIO_PinNumber			= PIN_6;
+//	handlerMotor1.GPIO_PinConfig.GPIO_PinMode			= GPIO_MODE_ALTFN;
+//	handlerMotor1.GPIO_PinConfig.GPIO_PinOPType			= GPIO_OTYPE_PUSHPULL;
+//	handlerMotor1.GPIO_PinConfig.GPIO_PinPuPdControl	= GPIO_PUPDR_NOTHING;
+//	handlerMotor1.GPIO_PinConfig.GPIO_PinSpeed			= GPIO_OSPEED_FAST;
+//	handlerMotor1.GPIO_PinConfig.GPIO_PinAltFunMode		= AF2;
 //
-//	GPIO_Config(&handlerMotor2);
+//	GPIO_Config(&handlerMotor1);
 //
 //	//Configurar el timer para que genere la señal PWM
-//	handlerPWM_Motor2.ptrTIMx							= TIM3;
-//	handlerPWM_Motor2.config.channel					= PWM_CHANNEL_4;
-//	handlerPWM_Motor2.config.periodo					= 20000;
-//	handlerPWM_Motor2.config.prescaler					= 16;
-//	handlerPWM_Motor2.config.duttyCicle					= DUTTY;
+//	handlerPWM_Motor1.ptrTIMx							= TIM3;
+//	handlerPWM_Motor1.config.channel					= PWM_CHANNEL_1;
+//	handlerPWM_Motor1.config.periodo					= 20000;
+//	handlerPWM_Motor1.config.prescaler					= 16;
+//	handlerPWM_Motor1.config.duttyCicle					= 1000;
 //
-//	pwm_Config(&handlerPWM_Motor2);
+//	pwm_Config(&handlerPWM_Motor1);
 //
 //	//Activamos la señal del motor 1
-//	enableOutput(&handlerPWM_Motor2);
-//	startPwmSignal(&handlerPWM_Motor2);
-//
-//
-//	//Motor 3
+//	enableOutput(&handlerPWM_Motor1);
+//	startPwmSignal(&handlerPWM_Motor1);
+
+
+
+
+
+//	//Motor 2 //No funciona
+	handlerMotor2.pGPIOx								= GPIOC;
+	handlerMotor2.GPIO_PinConfig.GPIO_PinNumber			= PIN_9;
+	handlerMotor2.GPIO_PinConfig.GPIO_PinMode			= GPIO_MODE_ALTFN;
+	handlerMotor2.GPIO_PinConfig.GPIO_PinOPType			= GPIO_OTYPE_PUSHPULL;
+	handlerMotor2.GPIO_PinConfig.GPIO_PinPuPdControl	= GPIO_PUPDR_NOTHING;
+	handlerMotor2.GPIO_PinConfig.GPIO_PinSpeed			= GPIO_OSPEED_FAST;
+	handlerMotor2.GPIO_PinConfig.GPIO_PinAltFunMode		= AF2;
+
+	GPIO_Config(&handlerMotor2);
+
+	//Configurar el timer para que genere la señal PWM
+	handlerPWM_Motor2.ptrTIMx							= TIM3;
+	handlerPWM_Motor2.config.channel					= PWM_CHANNEL_4;
+	handlerPWM_Motor2.config.periodo					= 20000;
+	handlerPWM_Motor2.config.prescaler					= 16;
+	handlerPWM_Motor2.config.duttyCicle					= 2000;
+
+	pwm_Config(&handlerPWM_Motor2);
+
+	//Activamos la señal del motor 2
+	enableOutput(&handlerPWM_Motor2);
+	startPwmSignal(&handlerPWM_Motor2);
+
+
+	//Motor 3- No funciona
 //	handlerMotor3.pGPIOx								= GPIOC;
 //	handlerMotor3.GPIO_PinConfig.GPIO_PinNumber			= PIN_8;
 //	handlerMotor3.GPIO_PinConfig.GPIO_PinMode			= GPIO_MODE_ALTFN;
@@ -241,9 +244,25 @@ void init_hardware(void){
 //	handlerPWM_Motor3.config.channel					= PWM_CHANNEL_3;
 //	handlerPWM_Motor3.config.periodo					= 20000;
 //	handlerPWM_Motor3.config.prescaler					= 16;
-//	handlerPWM_Motor3.config.duttyCicle					= DUTTY;
+//	handlerPWM_Motor3.config.duttyCicle					= 2000;
 //
 //	pwm_Config(&handlerPWM_Motor3);
+//
+//	//Activamos la señal del motor 3
+//	enableOutput(&handlerPWM_Motor3);
+//	startPwmSignal(&handlerPWM_Motor3);
+
+
+//	handlerMotor2.pGPIOx	= GPIOC;
+//	handlerMotor2.GPIO_PinConfig.GPIO_PinNumber = PIN_8;
+//	handlerMotor2.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_OUT;
+//	handlerMotor2.GPIO_PinConfig.GPIO_PinOPType = GPIO_OTYPE_PUSHPULL;
+//	handlerMotor2.GPIO_PinConfig.GPIO_PinSpeed 	= GPIO_OSPEED_FAST;
+//	handlerMotor2.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_PUPDR_NOTHING;
+//	GPIO_Config(&handlerMotor2);
+//	GPIO_WritePin(&handlerMotor2, SET);
+
+
 //
 //
 //	//Motor 4
