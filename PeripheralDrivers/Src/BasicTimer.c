@@ -64,20 +64,9 @@ void BasicTimer_Config(BasicTimer_Handler_t *ptrBTimerHandler){
 	 * Modificar el valor del registro PSC en el TIM utilizado
 	 */
 
-	switch(ptrBTimerHandler->TIMx_Config.TIMx_speed){
-	case(BTIMER_SPEED_100us):{
-		ptrTimerUsed->PSC = BTIMER_SPEED_100us;
-		break;
-	}
-	case(BTIMER_SPEED_10us):{
-		ptrTimerUsed->PSC = BTIMER_SPEED_10us;
-		break;
-	}
-	case(BTIMER_SPEED_1ms):{
-		ptrTimerUsed->PSC = BTIMER_SPEED_1ms;
-		break;
-	}
-	}
+	ptrBTimerHandler->ptrTIMx->PSC = ptrBTimerHandler->TIMx_Config.TIMx_speed;
+
+
 
 
 	/* 3. Configuramos la dirección del counter (up/down)*/

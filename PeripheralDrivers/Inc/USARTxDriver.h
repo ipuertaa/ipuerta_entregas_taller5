@@ -19,6 +19,12 @@
 #define USART_BAUDRATE_19200	1
 #define USART_BAUDRATE_115200	2
 
+//Macros para configurar el BRR cuando la velocidad del micro es 80MHz
+#define USART_BAUDRATE_80MHz_9600		3
+#define USART_BAUDRATE_80MHz_19200		4
+#define USART_BAUDRATE_80MHz_115200		5
+
+
 #define USART_DATASIZE_8BIT		0
 #define USART_DATASIZE_9BIT		1
 
@@ -79,10 +85,12 @@ typedef struct
 /* Definicion de los prototipos para las funciones del USART */
 void USART_Config(USART_Handler_t *ptrUsartHandler);
 
-int writeChar(USART_Handler_t *ptrUsartHandler, int dataToSend );
+//int writeChar(USART_Handler_t *ptrUsartHandler, int dataToSend);
+void writeChar(USART_Handler_t *ptrUsartHandler, char dataToSend);
 void writeMsg(USART_Handler_t *ptrUsartHandler, char *msgToSend);
-
 uint8_t getRxData(void);
+void TxInterrupt_Enable(USART_Handler_t *ptrUsartHandler);
+void TxInterrupt_Disable(USART_Handler_t *ptrUsartHandler);
 
 void usart1Rx_Callback(void);
 void usart2Rx_Callback(void);

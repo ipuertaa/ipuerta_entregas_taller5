@@ -9,6 +9,9 @@
 #include "USARTxDriver.h"
 
 uint8_t auxRxData = 0;
+char auxTxData = 0;
+uint8_t i = 0;
+
 
 /**
  * Configurando el puerto Serial...
@@ -136,6 +139,28 @@ void USART_Config(USART_Handler_t *ptrUsartHandler){
 		ptrUsartHandler->ptrUSARTx->BRR = 0x8B;
 	}
 
+	//Configuración de los valores de BRR si el micro se encuentra a Frec = 80MHz, overr = 0;
+	else if(ptrUsartHandler->USART_Config.USART_baudrate == USART_BAUDRATE_80MHz_9600){
+		//El valor a cargar es 520.83333. ->Mantiza = 520, Fraction = 0.83333
+		//Mantiza = 520 = 0x208, fraction = 16*0.83333 = 13 = D
+		//Valor a cargar = 0x208D
+		ptrUsartHandler->ptrUSARTx->BRR = 0x208D;
+	}
+
+	else if(ptrUsartHandler->USART_Config.USART_baudrate == USART_BAUDRATE_80MHz_19200){
+		//El valor a cargar es 260.41666 -> Mantiza = 260, Fraction = 0.41666
+		//Mantiza = 260 = 0x104, Fraction = 16*0.41666 = 6 = 0x6
+		//Valor a cargar = 0x1046
+		ptrUsartHandler->ptrUSARTx->BRR = 0x1046;
+	}
+
+	else if(ptrUsartHandler->USART_Config.USART_baudrate == USART_BAUDRATE_80MHz_115200){
+		//El valor a cargar es 43.40277 -> Mantiza = 43, Fraction = 0.40277
+		//Mantiza = 43 = 0x2B, fraction = 16*0.40277 = 6 = 0x6
+		//Valor a cargar = 0x02B6
+		ptrUsartHandler->ptrUSARTx->BRR = 0x02B6;
+	}
+
 	// 2.6 Configuramos el modo: TX only, RX only, RXTX, disable
 	switch(ptrUsartHandler->USART_Config.USART_mode){
 	case USART_MODE_TX:
@@ -187,8 +212,6 @@ void USART_Config(USART_Handler_t *ptrUsartHandler){
 		ptrUsartHandler->ptrUSARTx->CR1 &= ~(USART_CR1_RXNEIE);
 		ptrUsartHandler->ptrUSARTx->CR1 |= USART_CR1_RXNEIE;
 
-		ptrUsartHandler->ptrUSARTx->CR1 &= ~(USART_CR1_PEIE);
-		ptrUsartHandler->ptrUSARTx->CR1 |= USART_CR1_PEIE;
 
 		//Activar el canal del NVIC para que se lea la interrupción
 		if(ptrUsartHandler->ptrUSARTx == USART1){
@@ -222,14 +245,6 @@ void USART_Config(USART_Handler_t *ptrUsartHandler){
 	{
 		//Desactivamos las interrupciones globales
 		__disable_irq();
-
-		//Activar las interrupciones del canal que se está configurando
-		ptrUsartHandler->ptrUSARTx->CR1 &= ~(USART_CR1_TXEIE);
-		ptrUsartHandler->ptrUSARTx->CR1 |= USART_CR1_TXEIE;
-
-		ptrUsartHandler->ptrUSARTx->CR1 &= ~(USART_CR1_TCIE);
-		ptrUsartHandler->ptrUSARTx->CR1 |= USART_CR1_TCIE;
-
 
 		//Activar el canal del NVIC para que se lea la interrupción
 		if(ptrUsartHandler->ptrUSARTx == USART1){
@@ -281,23 +296,23 @@ void USART_Config(USART_Handler_t *ptrUsartHandler){
 //
 
 /* funcion para escribir un solo char */
-int writeChar(USART_Handler_t *ptrUsartHandler, int dataToSend ){
-	while( !(ptrUsartHandler->ptrUSARTx->SR & USART_SR_TXE)){
-		__NOP();
-	}
+void writeChar(USART_Handler_t *ptrUsartHandler, char dataToSend){
+//	while( !(ptrUsartHandler->ptrUSARTx->SR & USART_SR_TXE)){
+//		__NOP();
+//	}
 
-	ptrUsartHandler->ptrUSARTx->DR = dataToSend;
-	return dataToSend;
+	ptrUsartHandler->ptrUSARTx->CR1 |= USART_CR1_TXEIE;
+//	ptrUsartHandler->ptrUSARTx->DR = dataToSend;
+	auxTxData = dataToSend;
 }
 
 void writeMsg(USART_Handler_t *ptrUsartHandler, char *msgToSend){
-
-	uint8_t i = 0;
+	i=0;
 
 	while(msgToSend[i] != '\0'){
 
 		writeChar(ptrUsartHandler, msgToSend[i]);
-		i++;
+
 	}
 
 }
@@ -305,6 +320,28 @@ void writeMsg(USART_Handler_t *ptrUsartHandler, char *msgToSend){
 /* Función para la lectura del caracter que llega por la interface serial*/
 uint8_t getRxData(void){
 	return auxRxData;
+}
+
+/*
+ * El TXE siempre está activo a menos que haya un dato por transmitir.
+ * Debo tener una función mediante la cual pueda activar las
+ * interrupciones de la transmisión solo cuando quiera transmitir, para
+ * que de una salte la interrupción.
+ * Además, debo tener otra función para desactivar las interrupciones
+ * para que se pueda salir de la interrupción cuando el dato se envíe.
+ */
+
+void TxInterrupt_Enable(USART_Handler_t *ptrUsartHandler){
+	//Activar las interrupciones del canal que se está configurando
+	ptrUsartHandler->ptrUSARTx->CR1 |= USART_CR1_TXEIE;
+//	ptrUsartHandler->ptrUSARTx->CR1 |= USART_CR1_TCIE;
+}
+
+void TxInterrupt_Disable(USART_Handler_t *ptrUsartHandler){
+	//Desactivar las interrupciones del canal que se está configurando
+	ptrUsartHandler->ptrUSARTx->CR1 &= ~(USART_CR1_TXEIE);
+//	ptrUsartHandler->ptrUSARTx->CR1 &= ~(USART_CR1_TCIE);
+
 }
 
 
@@ -318,6 +355,12 @@ void USART1_IRQHandler(void){
 		auxRxData = (uint8_t) USART1->DR;
 		usart1Rx_Callback();
 	}
+	else if(USART1->SR & USART_SR_TXE){
+		USART1->DR = auxTxData;
+		i++;
+		//Desactivo la interrupción
+		USART1->CR1 &= ~(USART_CR1_TXEIE);
+	}
 
 }
 
@@ -326,12 +369,26 @@ void USART2_IRQHandler(void){
 		auxRxData = (uint8_t) USART2->DR;
 		usart2Rx_Callback();
 	}
+	else if(USART2->SR & USART_SR_TXE){
+		USART2->DR =auxTxData;
+
+
+		//Desactivo la interrupción
+		USART2->CR1 &= ~(USART_CR1_TXEIE);
+		i++;
+	}
 }
 
 void USART6_IRQHandler(void){
 	if(USART6->SR & USART_SR_RXNE){
 		auxRxData = (uint8_t) USART6->DR;
 		usart6Rx_Callback();
+	}
+	else if(USART6->SR & USART_SR_TXE){
+		USART6->DR = auxTxData;
+
+		//Desactivo la interrupción
+		USART6->CR1 &= ~(USART_CR1_TXEIE);
 	}
 }
 
