@@ -11,6 +11,9 @@
 uint8_t auxRxData = 0;
 char auxTxData = 0;
 uint8_t i = 0;
+char *auxMsgToSend;	//NO lo tengo que inicializar
+uint8_t flagChar = 0;
+uint8_t flagMsg = 0;
 
 
 /**
@@ -300,20 +303,21 @@ void writeChar(USART_Handler_t *ptrUsartHandler, char dataToSend){
 //	while( !(ptrUsartHandler->ptrUSARTx->SR & USART_SR_TXE)){
 //		__NOP();
 //	}
-
-	ptrUsartHandler->ptrUSARTx->CR1 |= USART_CR1_TXEIE;
-//	ptrUsartHandler->ptrUSARTx->DR = dataToSend;
 	auxTxData = dataToSend;
+	flagChar = 1;
+	ptrUsartHandler->ptrUSARTx->CR1 |= USART_CR1_TXEIE;
+
+
+
 }
 
 void writeMsg(USART_Handler_t *ptrUsartHandler, char *msgToSend){
+
+	//Almaceno lo que quiero enviar
+	auxMsgToSend = msgToSend;
+	flagChar = 2;
 	i=0;
-
-	while(msgToSend[i] != '\0'){
-
-		writeChar(ptrUsartHandler, msgToSend[i]);
-
-	}
+	ptrUsartHandler->ptrUSARTx->CR1 |= USART_CR1_TXEIE;
 
 }
 
@@ -356,10 +360,22 @@ void USART1_IRQHandler(void){
 		usart1Rx_Callback();
 	}
 	else if(USART1->SR & USART_SR_TXE){
-		USART1->DR = auxTxData;
-		i++;
-		//Desactivo la interrupción
-		USART1->CR1 &= ~(USART_CR1_TXEIE);
+		if(flagChar == 1){
+			USART1->DR = auxTxData;
+			flagChar = 0;
+			//Desactivo la interrupción
+			USART1->CR1 &= ~(USART_CR1_TXEIE);
+		}
+		else if(flagChar == 2){
+			if(auxMsgToSend[i] != '\0'){
+				USART1->DR = auxMsgToSend[i];
+				i++;
+			}
+			else{
+				//Desactivo la interrupción
+				USART1->CR1 &= ~(USART_CR1_TXEIE);
+			}
+		}
 	}
 
 }
@@ -370,12 +386,23 @@ void USART2_IRQHandler(void){
 		usart2Rx_Callback();
 	}
 	else if(USART2->SR & USART_SR_TXE){
-		USART2->DR =auxTxData;
 
-
-		//Desactivo la interrupción
-		USART2->CR1 &= ~(USART_CR1_TXEIE);
-		i++;
+		if(flagChar == 1){ //WriteChar
+			USART2->DR =auxTxData;
+			flagChar = 0;
+			//Desactivo la interrupción
+			USART2->CR1 &= ~(USART_CR1_TXEIE);
+		}
+		else if(flagChar == 2){//WriteMsg
+			if(auxMsgToSend[i] != '\0'){
+				USART2->DR = auxMsgToSend[i];
+				i++;
+			}
+			else{
+				//Desactivo la interrupción
+				USART2->CR1 &= ~(USART_CR1_TXEIE);
+			}
+		}
 	}
 }
 

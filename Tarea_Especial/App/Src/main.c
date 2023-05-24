@@ -74,18 +74,17 @@ void init_hardware(void);
 
 int main(void){
 
-	//Activar el co-procesador
-//	SCB->CPACR |= (0xF << 20);
-
 	//Inicializar todos los elementos
+	configPLL80MHz();
 	init_hardware();
-//	configPLL80MHz();
+
 
 
 
 
 	//Imprimir un mensaje de inicio
-
+	sprintf(mensajePrueba, "\nMensaje a enviar %d %d %d", dia, mes, anio);
+	writeMsg(&handlerCommTerminal, mensajePrueba);
 
 
 
@@ -199,7 +198,7 @@ void init_hardware(void){
 	//Configuración de la comunicación serial:
 
 	handlerPinTX.pGPIOx = GPIOA;
-	handlerPinTX.GPIO_PinConfig.GPIO_PinNumber = PIN_2;
+	handlerPinTX.GPIO_PinConfig.GPIO_PinNumber = PIN_9;
 	handlerPinTX.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_ALTFN;
 	handlerPinTX.GPIO_PinConfig.GPIO_PinOPType = GPIO_OTYPE_PUSHPULL;
 	handlerPinTX.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_PUPDR_NOTHING;
@@ -209,7 +208,7 @@ void init_hardware(void){
 	GPIO_Config(&handlerPinTX);
 
 	handlerPinRX.pGPIOx = GPIOA;
-	handlerPinRX.GPIO_PinConfig.GPIO_PinNumber = PIN_3;
+	handlerPinRX.GPIO_PinConfig.GPIO_PinNumber = PIN_10;
 	handlerPinRX.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_ALTFN;
 	handlerPinRX.GPIO_PinConfig.GPIO_PinOPType = GPIO_OTYPE_PUSHPULL;
 	handlerPinRX.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_PUPDR_NOTHING;
@@ -217,8 +216,8 @@ void init_hardware(void){
 	handlerPinRX.GPIO_PinConfig.GPIO_PinAltFunMode = AF7;
 	GPIO_Config(&handlerPinRX);
 
-	handlerCommTerminal.ptrUSARTx = USART2;
-	handlerCommTerminal.USART_Config.USART_baudrate = USART_BAUDRATE_19200;
+	handlerCommTerminal.ptrUSARTx = USART1;
+	handlerCommTerminal.USART_Config.USART_baudrate = USART_BAUDRATE_80MHz_115200;
 	handlerCommTerminal.USART_Config.USART_datasize = USART_DATASIZE_8BIT;
 	handlerCommTerminal.USART_Config.USART_parity = USART_PARITY_NONE;
 	handlerCommTerminal.USART_Config.USART_mode = USART_MODE_RXTX;
@@ -230,8 +229,8 @@ void init_hardware(void){
 
 	handlerStateOKTimer.ptrTIMx  = TIM2;
 	handlerStateOKTimer.TIMx_Config.TIMx_mode = BTIMER_MODE_UP;
-	handlerStateOKTimer.TIMx_Config.TIMx_speed = BTIMER_SPEED_1ms;
-	handlerStateOKTimer.TIMx_Config.TIMx_period = 250;
+	handlerStateOKTimer.TIMx_Config.TIMx_speed = 8000;
+	handlerStateOKTimer.TIMx_Config.TIMx_period = 2500;
 	handlerStateOKTimer.TIMx_Config.TIMx_interruptEnable = 1;
 
 	BasicTimer_Config(&handlerStateOKTimer);
@@ -268,15 +267,15 @@ void init_hardware(void){
 
 	//configurar el pin para medir la señal de reloj del micro
 
-//	handlerMCO1.pGPIOx 										= GPIOA;
-//	handlerMCO1.GPIO_PinConfig.GPIO_PinNumber 				= PIN_8;
-//	handlerMCO1.GPIO_PinConfig.GPIO_PinMode					= GPIO_MODE_ALTFN;
-//	handlerMCO1.GPIO_PinConfig.GPIO_PinOPType 				= GPIO_OTYPE_PUSHPULL;
-//	handlerMCO1.GPIO_PinConfig.GPIO_PinSpeed 				= GPIO_OSPEED_FAST;
-//	handlerMCO1.GPIO_PinConfig.GPIO_PinPuPdControl 			= GPIO_PUPDR_NOTHING;
-//	handlerMCO1.GPIO_PinConfig.GPIO_PinAltFunMode			= AF0;
-//
-//	GPIO_Config(&handlerMCO1);
+	handlerMCO1.pGPIOx 										= GPIOA;
+	handlerMCO1.GPIO_PinConfig.GPIO_PinNumber 				= PIN_8;
+	handlerMCO1.GPIO_PinConfig.GPIO_PinMode					= GPIO_MODE_ALTFN;
+	handlerMCO1.GPIO_PinConfig.GPIO_PinOPType 				= GPIO_OTYPE_PUSHPULL;
+	handlerMCO1.GPIO_PinConfig.GPIO_PinSpeed 				= GPIO_OSPEED_FAST;
+	handlerMCO1.GPIO_PinConfig.GPIO_PinPuPdControl 			= GPIO_PUPDR_NOTHING;
+	handlerMCO1.GPIO_PinConfig.GPIO_PinAltFunMode			= AF0;
+
+	GPIO_Config(&handlerMCO1);
 
 
 
