@@ -36,7 +36,14 @@ void i2c_config(I2C_Handler_t *ptrHandlerI2C){
 	 * utilizada por el periférico para generar la señal de reloj para el bus I2C
 	 */
 	ptrHandlerI2C->ptrI2Cx->CR2 &= ~(0b111111 << I2C_CR2_FREQ_Pos);
-	ptrHandlerI2C->ptrI2Cx->CR2 |= (MAIN_CLOCK_16_MHz_FOR_I2C << I2C_CR2_FREQ_Pos);
+
+	if(ptrHandlerI2C->Clock_Freq == CLOCK_FREQ_16MHz){
+		ptrHandlerI2C->ptrI2Cx->CR2 |= (MAIN_CLOCK_16_MHz_FOR_I2C << I2C_CR2_FREQ_Pos);
+	}
+	else if(ptrHandlerI2C->Clock_Freq == CLOCK_FREQ_80MHz){
+		ptrHandlerI2C->ptrI2Cx->CR2 |= (MAIN_CLOCK_40MHz_FOR_I2C << I2C_CR2_FREQ_Pos);
+	}
+
 
 	/*
 	 * 4. Configuramos el modo I2C en el que el sistema funciona.
@@ -51,23 +58,40 @@ void i2c_config(I2C_Handler_t *ptrHandlerI2C){
 		//Seleccionamos el modo estandar
 		ptrHandlerI2C->ptrI2Cx->CCR &= ~I2C_CCR_FS;
 
-		//Configuramos el registro que se encarga de generar la señal de reloj
-		ptrHandlerI2C->ptrI2Cx->CCR |= (I2C_MODE_SM_SPEED_100KHz << I2C_CCR_CCR_Pos);
+		//Configuramos el registro que se encarga de generar la señal de reloj y el TRISE max
+		if(ptrHandlerI2C->Clock_Freq == CLOCK_FREQ_16MHz){
+			//Configuramos la señal de reloj cuando el MCU está a 16MHz
+			ptrHandlerI2C->ptrI2Cx->CCR |= (I2C_MODE_SM_SPEED_100KHz << I2C_CCR_CCR_Pos);
+			//Configuramos el TRISE cuando el MCU está a 16MHz
+			ptrHandlerI2C->ptrI2Cx->TRISE |= I2C_MAX_RISE_TIME_SM;
+		}
 
-		//Configuramos el registro que controla el tiempo Trise máximo
-		ptrHandlerI2C->ptrI2Cx->TRISE |= I2C_MAX_RISE_TIME_SM;
+		else if(ptrHandlerI2C->Clock_Freq == CLOCK_FREQ_80MHz){
+			//Configuramos la señal de reloj cuando el MCU está a 80MHz
+			ptrHandlerI2C->ptrI2Cx->CCR |= (I2C_MODE_SM_80MHZ_SPEED_100KHz << I2C_CCR_CCR_Pos);
+			//Configuramos el TRISE cuando el MCU está a 80MHz
+			ptrHandlerI2C->ptrI2Cx->TRISE |= I2C_80MHZ_MAX_RISE_TIME_SM;
+		}
 
 	}
 	else{
 		//Configuramos el modo fast
 		ptrHandlerI2C->ptrI2Cx->CCR |= I2C_CCR_FS;
 
-		//Configuramos el registro que se encarga de generar la señal de reloj
-		ptrHandlerI2C->ptrI2Cx->CCR |= (I2C_MODE_FM_SPEED_400KHz << I2C_CCR_CCR_Pos);
+		//Configuramos el registro que se encarga de generar la reñal de reloj y el TRISE max
+		if(ptrHandlerI2C->Clock_Freq == CLOCK_FREQ_16MHz){
+			//Configuramos la señal de reloj cuando el MCU está a 16MHz
+			ptrHandlerI2C->ptrI2Cx->CCR |= (I2C_MODE_FM_SPEED_400KHz << I2C_CCR_CCR_Pos);
+			//Configuramos el TRISE cuando el MCU está a 16MHz
+			ptrHandlerI2C->ptrI2Cx->TRISE |= I2C_MAX_RISE_TIME_FM;
+		}
 
-		//Configuramos el registro que controla el tiempo Trise máximo
-		ptrHandlerI2C->ptrI2Cx->TRISE |= I2C_MAX_RISE_TIME_FM;
-
+		else if(ptrHandlerI2C->Clock_Freq == CLOCK_FREQ_80MHz){
+			//Configuramos la señal de reloj cuando el MCU está a 80MHz
+			ptrHandlerI2C->ptrI2Cx->CCR |= (I2C_MODE_FM_80MHZ_SPEED_400KHz << I2C_CCR_CCR_Pos);
+			//Configuramos el TRISE cuando el MCU está a 80MHz
+			ptrHandlerI2C->ptrI2Cx->TRISE |= I2C_80MHZ_MAX_RISE_TIME_FM;
+		}
 	}
 
 	//5. Activamos el módulo I2C

@@ -244,6 +244,16 @@ void USART_Config(USART_Handler_t *ptrUsartHandler){
 		break;
 	}
 
+	default:
+	{
+		//Se desactiva la interrupción
+		ptrUsartHandler->ptrUSARTx->CR1 &= ~(USART_CR1_RXNEIE);
+		break;
+	}
+	}	//FIn interrupción por Rx
+
+	//2.6.2 Configuración de las interrupciones por transmisión
+	switch(ptrUsartHandler->USART_Config.USART_enableIntTX){
 	case USART_TX_INTERRUPT_ENABLE:
 	{
 		//Desactivamos las interrupciones globales
@@ -277,14 +287,13 @@ void USART_Config(USART_Handler_t *ptrUsartHandler){
 		break;
 	}
 
-	default:
-	{
-		//Se desactivan todas las interrupciones
+	default:{
+		//Se desactiva la interrupción
 		ptrUsartHandler->ptrUSARTx->CR1 &= ~(USART_CR1_TXEIE);
-		ptrUsartHandler->ptrUSARTx->CR1 &= ~(USART_CR1_RXNEIE);
 		break;
 	}
-	}
+
+	}	//Fin interrupción por Tx
 
 	// 2.7 Activamos el modulo serial.
 	if(ptrUsartHandler->USART_Config.USART_mode != USART_MODE_DISABLE){
@@ -300,14 +309,9 @@ void USART_Config(USART_Handler_t *ptrUsartHandler){
 
 /* funcion para escribir un solo char */
 void writeChar(USART_Handler_t *ptrUsartHandler, char dataToSend){
-//	while( !(ptrUsartHandler->ptrUSARTx->SR & USART_SR_TXE)){
-//		__NOP();
-//	}
 	auxTxData = dataToSend;
 	flagChar = 1;
 	ptrUsartHandler->ptrUSARTx->CR1 |= USART_CR1_TXEIE;
-
-
 
 }
 
@@ -326,27 +330,6 @@ uint8_t getRxData(void){
 	return auxRxData;
 }
 
-/*
- * El TXE siempre está activo a menos que haya un dato por transmitir.
- * Debo tener una función mediante la cual pueda activar las
- * interrupciones de la transmisión solo cuando quiera transmitir, para
- * que de una salte la interrupción.
- * Además, debo tener otra función para desactivar las interrupciones
- * para que se pueda salir de la interrupción cuando el dato se envíe.
- */
-
-void TxInterrupt_Enable(USART_Handler_t *ptrUsartHandler){
-	//Activar las interrupciones del canal que se está configurando
-	ptrUsartHandler->ptrUSARTx->CR1 |= USART_CR1_TXEIE;
-//	ptrUsartHandler->ptrUSARTx->CR1 |= USART_CR1_TCIE;
-}
-
-void TxInterrupt_Disable(USART_Handler_t *ptrUsartHandler){
-	//Desactivar las interrupciones del canal que se está configurando
-	ptrUsartHandler->ptrUSARTx->CR1 &= ~(USART_CR1_TXEIE);
-//	ptrUsartHandler->ptrUSARTx->CR1 &= ~(USART_CR1_TCIE);
-
-}
 
 
 
