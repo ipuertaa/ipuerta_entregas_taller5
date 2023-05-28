@@ -28,7 +28,7 @@ uint64_t ticks_start = 0;
 uint64_t ticks_counting = 0;
 
 
-void configSysTick_ms(uint8_t systemClock){
+void config_SysTick_ms(uint8_t systemClock){
 	//Reiniciamos el valor de la variable que cuenta el tiempo
 	ticks = 0;
 
@@ -49,6 +49,17 @@ void configSysTick_ms(uint8_t systemClock){
 	case 2:
 		SysTick->LOAD = SYSTICK_LOAD_VALUE_100MHz_1ms;
 		break;
+
+	//Caso para el reloj PLL a 81MHz
+	case 3:{
+		SysTick->LOAD = SYSTICK_LOAD_VALUE_81MHz_1ms;
+		break;
+	}
+	// Caso para el reloj PLL a 80MHz
+	case 4: {
+		SysTick->LOAD = SYSTICK_LOAD_VALUE_80MHz_1ms;
+		break;
+	}
 
 	//En caso que se ingrese un valor diferente
 	default:
@@ -85,7 +96,7 @@ uint64_t getTicks_ms(void){
 
 void delay_ms(uint32_t wait_time_ms){
 	//capture el primer valor de tiempo para comparar
-	ticks_start = getTickMs();
+	ticks_start =  getTicks_ms();
 
 	//captura el segundo valor de tiempo para comparar
 	ticks_counting = getTicks_ms();

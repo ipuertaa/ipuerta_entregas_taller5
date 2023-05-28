@@ -22,12 +22,15 @@
 #include "USARTxDriver.h"
 #include "I2CDriver.h"
 #include "PLL.h"
+#include "LcdDriver.h"
+#include "SysTickDriver.h"
 
 
 
 
 GPIO_Handler_t handlerMCO1 ={0};
-//Elementos para la comunicación I2C
+
+//Elementos para el usart
 GPIO_Handler_t handlerLedOK = {0};
 GPIO_Handler_t handlerPinTX = {0};
 GPIO_Handler_t handlerPinRX = {0};
@@ -51,6 +54,13 @@ char mensajePrueba[100] = {0};
 uint8_t dia = 24;
 uint8_t mes = 5;
 uint8_t anio = 23;
+
+//Elementos para la comunicación con la pantalla
+GPIO_Handler_t handlerLCD_SDA = {0};
+GPIO_Handler_t handlerLCD_SCL = {0};
+I2C_Handler_t handlerLCD = {0};
+#define LCD_ADDRESS 	0x20;
+
 
 #define ACCEL_ADDRESS	0b1101001;
 #define ACCEL_XOUT_H	59
@@ -78,6 +88,9 @@ int main(void){
 	configPLL80MHz();
 	init_hardware();
 
+	Init_LCD(&handlerLCD);
+
+
 
 
 
@@ -100,6 +113,12 @@ int main(void){
 				writeMsg(&handlerCommTerminal, bufferData);
 				rxData = '\0';
 
+				/*
+				 * El registro WHO AM I, se usa para identificar el dispositivo.
+				 * Debo recibir 0b1101001 (6 bits, no se tiene en cuenta el del ADO)
+				 * EL valor por defecto es 0x68
+				 */
+
 			}
 
 			else if(rxData == 'p'){
@@ -109,6 +128,17 @@ int main(void){
 				sprintf(bufferData, "dataRead = 0x%x \n", (unsigned int) i2cBuffer);
 				writeMsg(&handlerCommTerminal, bufferData);
 				rxData = 0;
+
+				/*
+				 * En el PWR-MGMT_1 se controla la alimentación.
+				 * Si SLEEP = 1 -> modo de ahorro de energia
+				 * Si CYCLE = 1 y SLEEP = 0 -> entra en modo ciclo
+				 * Si DEVICE_RESET = 1; todos los registros se van a sus valores
+				 * por defecto, luego se vuelve automaticamente a cero
+				 *
+				 * Por defecto el accel está en SLEEP, por lo que hay que, hay que hacer
+				 * cero el registro 107 para despertarlo
+				 */
 			}
 			else if(rxData == 'r'){
 				sprintf(bufferData, "PWR_MGMT_1 reset (w)\n");
@@ -316,6 +346,39 @@ void init_hardware(void){
 	handlerAccelerometer.Clock_Freq = CLOCK_FREQ_80MHz;
 
 	i2c_config(&handlerAccelerometer);
+
+
+	//Configurar la comunicación con la pantalla
+	handlerLCD_SCL.pGPIOx		= GPIOB;
+	handlerLCD_SCL.GPIO_PinConfig.GPIO_PinNumber = PIN_10;
+	handlerLCD_SCL.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_ALTFN;
+	handlerLCD_SCL.GPIO_PinConfig.GPIO_PinOPType = GPIO_OTYPE_OPENDRAIN;
+	handlerLCD_SCL.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_PUPDR_NOTHING;
+	handlerLCD_SCL.GPIO_PinConfig.GPIO_PinSpeed = GPIO_OSPEED_FAST;
+	handlerLCD_SCL.GPIO_PinConfig.GPIO_PinAltFunMode = AF4;
+
+	GPIO_Config(&handlerLCD_SCL);
+
+	handlerLCD_SDA.pGPIOx		= GPIOB;
+	handlerLCD_SDA.GPIO_PinConfig.GPIO_PinNumber = PIN_3;
+	handlerLCD_SDA.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_ALTFN;
+	handlerLCD_SDA.GPIO_PinConfig.GPIO_PinOPType = GPIO_OTYPE_OPENDRAIN;
+	handlerLCD_SDA.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_PUPDR_NOTHING;
+	handlerLCD_SDA.GPIO_PinConfig.GPIO_PinSpeed = GPIO_OSPEED_FAST;
+	handlerLCD_SDA.GPIO_PinConfig.GPIO_PinAltFunMode = AF9;
+
+	GPIO_Config(&handlerLCD_SDA);
+
+	handlerLCD.ptrI2Cx = I2C2;
+	handlerLCD.modeI2C = I2C_MODE_SM;
+	handlerLCD.slaveAddress = LCD_ADDRESS;
+	handlerLCD.Clock_Freq = CLOCK_FREQ_80MHz;
+
+	i2c_config(&handlerLCD);
+
+	//Configuro el systick para que el reloj sea el PLL de 80MHz
+	config_SysTick_ms(PLL_80MHz_CLOCK_CONFIGURED);
+
 
 
 	//configurar el pin para medir la señal de reloj del micro
