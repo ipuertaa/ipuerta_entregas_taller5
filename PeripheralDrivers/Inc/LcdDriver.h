@@ -15,6 +15,7 @@
 #define RS		0b00000001
 #define RW		0b00000010
 #define	E		0b00000100
+#define LED		0b00001000
 #define D4		0b00010000
 #define D5		0b00100000
 #define D6		0b01000000
@@ -37,6 +38,8 @@
 #define COMANDO		0
 #define DATO		1
 
+#define CLEAR		0x01
+
 #define SET			0x03
 
 
@@ -48,7 +51,9 @@ void comandos_LCD(I2C_Handler_t *ptrHandlerI2C, uint8_t comando);
 void nuevoDato_LCD(I2C_Handler_t *ptrHandlerI2C, uint8_t dato);
 void LCD_XY(I2C_Handler_t *ptrHandlerI2C, uint8_t x, uint8_t y);
 void LCD_dato_XY_(I2C_Handler_t *ptrHandlerI2C, uint8_t x, uint8_t y, uint8_t caracter);
-
+void LCD_out_Msg(I2C_Handler_t *ptrHandlerI2C, unsigned char Msg[]);
+void LCD_Out_Msg_XY(I2C_Handler_t *ptrHandlerI2C, uint8_t x, uint8_t y, unsigned char Msg[]);
+void LCD_Out_Msg_XY(I2C_Handler_t *ptrHandlerI2C, uint8_t x, uint8_t y, unsigned char Msg[]);
 
 
 

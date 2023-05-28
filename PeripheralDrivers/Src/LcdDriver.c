@@ -9,6 +9,8 @@
 #include "LcdDriver.h"
 #include "SysTickDriver.h"
 #include "I2CDriver.h"
+uint8_t j = 0;
+uint8_t k = 0;
 
 
 
@@ -83,7 +85,7 @@ void escribir_LCD(I2C_Handler_t *ptrHandlerI2C, char dato){
 	i2c_sendSlaveAddressRW(ptrHandlerI2C, ptrHandlerI2C->slaveAddress, I2C_WRITE_DATA);
 
 	//Enviamos lo que deseamos escribir
-	i2c_sendDataByte(ptrHandlerI2C, dato);
+	i2c_sendDataByte(ptrHandlerI2C, (dato|LED));
 
 	//Generamos la condición de stop
 	i2c_stopTransaction(ptrHandlerI2C);
@@ -94,7 +96,10 @@ void escribir_LCD(I2C_Handler_t *ptrHandlerI2C, char dato){
 void Init_LCD(I2C_Handler_t *ptrHandlerI2C){
 
 	//Verifico que la comunicación se establezca, escribiendo un 0x00
-	escribir_LCD(ptrHandlerI2C, 0x00);
+	i2c_startTransaction(ptrHandlerI2C);
+	i2c_sendSlaveAddressRW(ptrHandlerI2C, ptrHandlerI2C->slaveAddress, I2C_WRITE_DATA);
+	i2c_sendDataByte(ptrHandlerI2C, 0x00);
+	i2c_stopTransaction(ptrHandlerI2C);
 
 	//Esperar más de 40 ms
 	delay_ms(50);
@@ -125,7 +130,7 @@ void Init_LCD(I2C_Handler_t *ptrHandlerI2C){
 
 	//Apago el display
 	particion(ptrHandlerI2C, COMANDO, 0x08);
-	delay_ms(5);
+	delay_ms(30);
 
 	//Limpiar display
 	particion(ptrHandlerI2C, COMANDO, 0x01);
@@ -142,11 +147,13 @@ void Init_LCD(I2C_Handler_t *ptrHandlerI2C){
 	delay_ms(5);
 }
 
+// Función para enviar un nuevo comando a la LCD
 void comandos_LCD(I2C_Handler_t *ptrHandlerI2C, uint8_t comando){
 	particion(ptrHandlerI2C, COMANDO, comando);
 	delay_ms(10);
 }
 
+// Función para enviar un nuevo dato a la LCD
 void nuevoDato_LCD(I2C_Handler_t *ptrHandlerI2C, uint8_t dato){
 	particion(ptrHandlerI2C, DATO, dato);
 	delay_ms(10);
@@ -179,10 +186,20 @@ void LCD_dato_XY_(I2C_Handler_t *ptrHandlerI2C, uint8_t x, uint8_t y, uint8_t ca
 	particion(ptrHandlerI2C, DATO, caracter);
 }
 
-//void LCD_out_Msg(I2C_Handler_t *ptrHandlerI2C, uint8_t *Msg){
-//	while(*text){
-//
-//	}
+void LCD_out_Msg(I2C_Handler_t *ptrHandlerI2C, unsigned char Msg[]){
+	while(Msg[j] != '\0'){
+		nuevoDato_LCD(ptrHandlerI2C, Msg[j]);
+		j++;
+	}
+
+}
+
+void LCD_Out_Msg_XY(I2C_Handler_t *ptrHandlerI2C, uint8_t x, uint8_t y, unsigned char Msg[]){
+	LCD_XY(ptrHandlerI2C, x, y);
+	while(Msg[k] != '\0'){
+		nuevoDato_LCD(ptrHandlerI2C, Msg[j]);
+	}
+}
 
 
 
