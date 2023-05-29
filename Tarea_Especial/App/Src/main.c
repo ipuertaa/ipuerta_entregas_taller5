@@ -24,6 +24,7 @@
 #include "PLL.h"
 #include "LcdDriver.h"
 #include "SysTickDriver.h"
+#include "PwmDriver.h"
 
 
 
@@ -38,13 +39,13 @@ uint8_t rxData = 0;
 
 BasicTimer_Handler_t handlerStateOKTimer = {0};
 BasicTimer_Handler_t handlerAcelerometro = {0};
-uint8_t muestreo = 0;
+uint16_t muestreo = 0;
 float EjeX = 0;
 float EjeY = 0;
 float EjeZ = 0;
 
 USART_Handler_t handlerCommTerminal = {0};
-char bufferData[64] = "Accel MPU-6050 testing";
+char bufferData[150] = {0};
 
 uint32_t systemTicks = 0;
 uint32_t systemTicksStart = 0;
@@ -55,7 +56,7 @@ GPIO_Handler_t handlerI2cSCL = {0};
 I2C_Handler_t handlerAccelerometer = {0};
 uint8_t i2cBuffer = 0;
 
-
+uint8_t captura = 0;
 
 char mensajePrueba[100] = {0};
 uint8_t dia = 24;
@@ -67,10 +68,28 @@ GPIO_Handler_t handlerLCD_SDA = {0};
 GPIO_Handler_t handlerLCD_SCL = {0};
 I2C_Handler_t handlerLCD = {0};
 
-unsigned char mensajeLCD[] = "Tarea Especial TallerV";
-unsigned char mensajeAccelX[] = "Accel X =";
-unsigned char mensajeAccelY[] = "Accel Y =";
-unsigned char mensajeAccelZ[] = "AccelZ =";
+
+//Elementos para el PWM
+GPIO_Handler_t handlerGPIO_PWM1		= {0};
+PWM_Handler_t handlerPWM1			= {0};
+
+GPIO_Handler_t handlerGPIO_PWM2		= {0};
+PWM_Handler_t handlerPWM2			= {0};
+
+GPIO_Handler_t handlerGPIO_PWM3		= {0};
+PWM_Handler_t handlerPWM3			= {0};
+uint8_t banderaCaptura = 0;
+
+uint16_t a = 0;
+
+unsigned char mensajeLCD[] = "Tarea TallerV";
+unsigned char mensajeAccelX[] = "Eje X";
+unsigned char mensajeAccelY[] = "Eje Y";
+unsigned char mensajeAccelZ[] = "Eje Z";
+
+float DatosEjeX[2000] = {0};
+float DatosEjeY[2000] = {0};
+float DatosEjeZ[2000] = {0};
 
 #define LCD_ADDRESS 	0x20;
 
@@ -131,32 +150,22 @@ int main(void){
 	delay_ms(1000);
 
 	LCD_out_Msg(&handlerLCD, mensajeLCD);
-	delay_ms(10000);
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
 
 	while(1){
 
-		if(muestreo != 0){
-			EjeX = AccelX_conv();
-			EjeY = AccelY_conv();
-			EjeZ = AccelZ_cov();
-
-			muestreo = 0;		//Para que sólo haga la toma de datos cada que el timer lo indique
-		}
+//		if(muestreo != 0){
+//			EjeX = AccelX_conv();
+//			EjeY = AccelY_conv();
+//			EjeZ = AccelZ_cov();
+//			muestreo = 0;		//Para que sólo haga la toma de datos cada que el timer lo indique
+//
+//manejoDatos_LCD
+//
+//
+//		}
 
 
 		if(rxData != '\0'){
@@ -198,6 +207,37 @@ int main(void){
 				sprintf(bufferData, "dataRead = 0x%x \n", (unsigned int) i2cBuffer);
 				writeMsg(&handlerCommTerminal, bufferData);
 				rxData = 0;
+
+			}
+
+//			else if(rxData == 'c'){
+//
+//				muestreo = 0;
+//				sprintf(bufferData, "Realizando captura de datos \n");
+//				writeMsg(&handlerCommTerminal, bufferData);
+//
+//				while(muestreo < 2000){
+//
+//					EjeX = AccelX_conv();
+//					EjeY = AccelY_conv();
+//					EjeZ = AccelZ_cov();
+//
+//					DatosEjeX[muestreo] = EjeX;
+//					DatosEjeY[muestreo] = EjeY;
+//					DatosEjeZ[muestreo] = EjeZ;
+//				}
+//				a = 0;
+//				while(a < 2000){
+//					float x = DatosEjeX[a];
+////					float y = DatosEjeY[a];
+////					float z = DatosEjeZ[a];
+////					sprintf(bufferData, "%.2f m/s² ; %.2f m/s² ; %.2f m/ s²\n",x,y,z);
+//					sprintf(bufferData, "Eje x = %.2f m/s²", x);
+//					writeMsg(&handlerCommTerminal, bufferData);
+//					a++;
+//				}
+//
+//				}
 
 			}
 			else{
@@ -281,12 +321,12 @@ int main(void){
 
 
 
-	}	//Fin while
+	}
 
 
 
 
-}	//Fin main
+
 
 float AccelX_conv(void){
 	uint8_t accelX_low = i2c_readSingleRegister(&handlerAccelerometer, ACCEL_XOUT_L);
@@ -482,13 +522,17 @@ void init_hardware(void){
 
 	GPIO_Config(&handlerMCO1);
 
-	handlerAcelerometro.ptrTIMx  = TIM3;
+	handlerAcelerometro.ptrTIMx  = TIM4;
 	handlerAcelerometro.TIMx_Config.TIMx_mode = BTIMER_MODE_UP;
 	handlerAcelerometro.TIMx_Config.TIMx_speed = BTIMER_SPEED_100us_80MHz;
 	handlerAcelerometro.TIMx_Config.TIMx_period = 10;
 	handlerAcelerometro.TIMx_Config.TIMx_interruptEnable = BTIMER_INTERRUPT_ENABLE;
 
 	BasicTimer_Config(&handlerAcelerometro);
+
+
+	//Configuración de los PWM
+
 
 
 
@@ -515,7 +559,9 @@ void BasicTimer2_Callback(void){
 	GPIO_TooglePin(&handlerLedOK);
 }
 
-void BasicTimer3_Callback(void){
+void BasicTimer4_Callback(void){
 	muestreo++;
+
+
 }
 
