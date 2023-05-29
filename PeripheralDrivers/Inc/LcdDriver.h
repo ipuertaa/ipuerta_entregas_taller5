@@ -51,9 +51,9 @@ void comandos_LCD(I2C_Handler_t *ptrHandlerI2C, uint8_t comando);
 void nuevoDato_LCD(I2C_Handler_t *ptrHandlerI2C, uint8_t dato);
 void LCD_XY(I2C_Handler_t *ptrHandlerI2C, uint8_t x, uint8_t y);
 void LCD_dato_XY_(I2C_Handler_t *ptrHandlerI2C, uint8_t x, uint8_t y, uint8_t caracter);
-void LCD_out_Msg(I2C_Handler_t *ptrHandlerI2C, unsigned char Msg[]);
-void LCD_Out_Msg_XY(I2C_Handler_t *ptrHandlerI2C, uint8_t x, uint8_t y, unsigned char Msg[]);
-void LCD_Out_Msg_XY(I2C_Handler_t *ptrHandlerI2C, uint8_t x, uint8_t y, unsigned char Msg[]);
+void LCD_out_Msg(I2C_Handler_t *ptrHandlerI2C, char Msg[]);
+void LCD_Out_Msg_XY(I2C_Handler_t *ptrHandlerI2C, uint8_t x, uint8_t y, char Msg[]);
+void LCD_Out_Msg_XY(I2C_Handler_t *ptrHandlerI2C, uint8_t x, uint8_t y, char Msg[]);
 
 
 

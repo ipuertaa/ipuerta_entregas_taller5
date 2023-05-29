@@ -163,6 +163,7 @@ void stopPwmSignal(PWM_Handler_t *ptrPwmHandler) {
 }
 
 /* Función encargada de activar cada uno de los canales con los que cuenta el TimerX */
+
 void enableOutput(PWM_Handler_t *ptrPwmHandler) {
 	switch (ptrPwmHandler->config.channel) {
 	case PWM_CHANNEL_1: {

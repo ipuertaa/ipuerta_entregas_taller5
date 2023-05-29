@@ -177,8 +177,11 @@ void LCD_XY(I2C_Handler_t *ptrHandlerI2C, uint8_t x, uint8_t y){
 		comandos_LCD(ptrHandlerI2C, (0xD4 + (x-1)));
 		break;
 	}
+	default:{
+		__NOP();
 	}
-	delay_ms(50);
+	}
+	delay_ms(100);
 }
 
 void LCD_dato_XY_(I2C_Handler_t *ptrHandlerI2C, uint8_t x, uint8_t y, uint8_t caracter){
@@ -186,19 +189,19 @@ void LCD_dato_XY_(I2C_Handler_t *ptrHandlerI2C, uint8_t x, uint8_t y, uint8_t ca
 	particion(ptrHandlerI2C, DATO, caracter);
 }
 
-void LCD_out_Msg(I2C_Handler_t *ptrHandlerI2C, unsigned char Msg[]){
-	while(Msg[j] != '\0'){
-		nuevoDato_LCD(ptrHandlerI2C, Msg[j]);
-		j++;
+void LCD_out_Msg(I2C_Handler_t *ptrHandlerI2C, char *Msg){
+	int i = 0;
+	while(*(Msg+i)){
+		nuevoDato_LCD(ptrHandlerI2C, *(Msg+i));
+		delay_ms(5);
+		i++;
 	}
 
 }
 
-void LCD_Out_Msg_XY(I2C_Handler_t *ptrHandlerI2C, uint8_t x, uint8_t y, unsigned char Msg[]){
+void LCD_Out_Msg_XY(I2C_Handler_t *ptrHandlerI2C, uint8_t x, uint8_t y, char *Msg){
 	LCD_XY(ptrHandlerI2C, x, y);
-	while(Msg[k] != '\0'){
-		nuevoDato_LCD(ptrHandlerI2C, Msg[j]);
-	}
+	LCD_out_Msg(ptrHandlerI2C, Msg);
 }
 
 

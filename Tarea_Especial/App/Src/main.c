@@ -28,48 +28,49 @@
 
 
 
-
+// Elementos asociados al PLL
 GPIO_Handler_t handlerMCO1 ={0};
 
-//Elementos para el usart
-GPIO_Handler_t handlerLedOK = {0};
+// Elementos para la comunicación serial USART1
 GPIO_Handler_t handlerPinTX = {0};
 GPIO_Handler_t handlerPinRX = {0};
+USART_Handler_t handlerCommTerminal = {0};
 uint8_t rxData = 0;
 
+// Elementos para el led de estado PA5 + TIM2
 BasicTimer_Handler_t handlerStateOKTimer = {0};
-BasicTimer_Handler_t handlerAcelerometro = {0};
-uint16_t muestreo = 0;
-float EjeX = 0;
-float EjeY = 0;
-float EjeZ = 0;
+GPIO_Handler_t handlerLedOK = {0};
 
-USART_Handler_t handlerCommTerminal = {0};
-char bufferData[150] = {0};
+// Elementos para el trabajo con el acelerómetro:
 
-uint32_t systemTicks = 0;
-uint32_t systemTicksStart = 0;
-uint8_t systemTicksEnd = 0;
-
+// Comunicación por I2C1
 GPIO_Handler_t handlerI2cSDA = {0};
 GPIO_Handler_t handlerI2cSCL = {0};
 I2C_Handler_t handlerAccelerometer = {0};
-uint8_t i2cBuffer = 0;
 
-uint8_t captura = 0;
+// Barrido
+BasicTimer_Handler_t handlerAcelerometro = {0};
+uint16_t muestreo = 0;
+uint16_t numDato = 0;
 
-char mensajePrueba[100] = {0};
-uint8_t dia = 24;
-uint8_t mes = 5;
-uint8_t anio = 23;
+uint8_t FlagDatos = 0;
 
-//Elementos para la comunicación con la pantalla
+// Manejo de datos
+float EjeX = 0;
+float EjeY = 0;
+float EjeZ = 0;
+float DatosEjeX[2000] = {0};
+float DatosEjeY[2000] = {0};
+float DatosEjeZ[2000] = {0};
+
+//Elementos para el manejo de la pantalla
+
+//Comunicación I2C2
 GPIO_Handler_t handlerLCD_SDA = {0};
 GPIO_Handler_t handlerLCD_SCL = {0};
 I2C_Handler_t handlerLCD = {0};
 
-
-//Elementos para el PWM
+// Elementos para el manejo de los PWM
 GPIO_Handler_t handlerGPIO_PWM1		= {0};
 PWM_Handler_t handlerPWM1			= {0};
 
@@ -78,22 +79,31 @@ PWM_Handler_t handlerPWM2			= {0};
 
 GPIO_Handler_t handlerGPIO_PWM3		= {0};
 PWM_Handler_t handlerPWM3			= {0};
-uint8_t banderaCaptura = 0;
+uint16_t Dutty = 3277;
+uint16_t NewDutty = 0;
 
+
+// Elementos de uso general
+char bufferData[100] = {0};
+char bufferEjes[100] = {0};
+uint8_t i2cBuffer = 0;
+uint8_t captura = 0;
+char mensajePrueba[100] = {0};
+uint8_t dia = 24;
+uint8_t mes = 5;
+uint8_t anio = 23;
+uint8_t banderaCaptura = 0;
 uint16_t a = 0;
 
-unsigned char mensajeLCD[] = "Tarea TallerV";
-unsigned char mensajeAccelX[] = "Eje X";
-unsigned char mensajeAccelY[] = "Eje Y";
-unsigned char mensajeAccelZ[] = "Eje Z";
+char mensajeLCD[] = "Tarea Taller 5";
+char hpta[]= "Eje x =";
+char mensajeAccelX[] = "Eje X";
+char mensajeAccelY[] = "Eje Y";
+char mensajeAccelZ[] = "Eje Z";
 
-float DatosEjeX[2000] = {0};
-float DatosEjeY[2000] = {0};
-float DatosEjeZ[2000] = {0};
+
 
 #define LCD_ADDRESS 	0x20;
-
-
 #define ACCEL_ADDRESS	0b1101001;
 #define ACCEL_XOUT_H	59
 #define ACCEL_XOUT_L	60
@@ -115,7 +125,12 @@ float convertirUnidades(int16_t valorAccel);
 void init_acelerometro(void);
 float AccelX_conv(void);
 float AccelY_conv(void);
-float AccelZ_cov(void);
+float AccelZ_conv(void);
+
+int16_t AccelX_non_conv(void);
+int16_t AccelY_non_conv(void);
+int16_t AccelZ_non_conv(void);
+
 
 //Función principal del programa
 
@@ -124,48 +139,74 @@ int main(void){
 	//Inicializar todos los elementos
 	configPLL80MHz();
 	init_hardware();
-
-	//Imprimir un mensaje de inicio
-	sprintf(mensajePrueba, "Iniciando sistema \n");
-	writeMsg(&handlerCommTerminal, mensajePrueba);
-
-	delay_ms(100);
-
 	init_acelerometro();
+	Init_LCD(&handlerLCD);
 
 	//Activar el punto flotante
 	SCB->CPACR |= (0x0F << 20);
 
-	Init_LCD(&handlerLCD);
-	nuevoDato_LCD(&handlerLCD, 'i');
-	nuevoDato_LCD(&handlerLCD, 's');
-	nuevoDato_LCD(&handlerLCD, 'a');
-	nuevoDato_LCD(&handlerLCD, 'b');
-	nuevoDato_LCD(&handlerLCD, 'e');
-	nuevoDato_LCD(&handlerLCD, 'l');
+	//Imprimir un mensaje de inicio
+	sprintf(mensajePrueba, "Iniciando sistema \n");
+	writeMsg(&handlerCommTerminal, mensajePrueba);
+	delay_ms(100);
 
+
+	LCD_XY(&handlerLCD, 3, 2);
+	LCD_out_Msg(&handlerLCD, "Tarea Taller 5");
 	delay_ms(1000);
-
+	LCD_XY(&handlerLCD, 1, 4);
+	LCD_out_Msg(&handlerLCD, "Pulsa para continuar");
+	delay_ms(1000);
 	comandos_LCD(&handlerLCD, CLEAR);
-	delay_ms(1000);
+	delay_ms(10);
 
-	LCD_out_Msg(&handlerLCD, mensajeLCD);
-
+	LCD_XY(&handlerLCD, 1, 1);
+	LCD_out_Msg(&handlerLCD, "Eje X =         m/s2");
+	LCD_XY(&handlerLCD, 1, 2);
+	LCD_out_Msg(&handlerLCD, "Eje Y =         m/s2");
+	LCD_XY(&handlerLCD, 1, 3);
+	LCD_out_Msg(&handlerLCD, "Eje Z =         m/s2");
 
 
 
 	while(1){
 
-//		if(muestreo != 0){
-//			EjeX = AccelX_conv();
-//			EjeY = AccelY_conv();
-//			EjeZ = AccelZ_cov();
-//			muestreo = 0;		//Para que sólo haga la toma de datos cada que el timer lo indique
-//
-//manejoDatos_LCD
-//
-//
-//		}
+		if(muestreo != 0){
+
+			//Realizando el barrido de los datos cada 1KHz = 1 ms
+			EjeZ = AccelX_non_conv();
+			EjeY = AccelY_non_conv();
+			EjeX = AccelZ_non_conv();
+
+			NewDutty = (uint16_t) (Dutty + (EjeX/10));
+			updateDuttyCycle(&handlerPWM1, NewDutty);
+
+
+
+
+//			else if(EjeX > (-20.00f) && EjeX <(20.00f)){
+//				Dutty = 100;
+//				updateDuttyCycle(&handlerPWM1, Dutty);
+//			}
+
+			muestreo = 0;
+		}
+
+//			FlagDatos = 0;
+		if(FlagDatos > 4){
+			sprintf(bufferData, "%.2f", EjeX);
+			LCD_XY(&handlerLCD, 9, 1);
+			LCD_out_Msg(&handlerLCD, bufferData);
+
+			sprintf(bufferData, "%.2f", EjeY);
+			LCD_XY(&handlerLCD, 9, 2);
+			LCD_out_Msg(&handlerLCD, bufferData);
+
+			sprintf(bufferData, "%.2f", EjeZ);
+			LCD_XY(&handlerLCD, 9, 3);
+			LCD_out_Msg(&handlerLCD, bufferData);
+			FlagDatos = 0;
+		}
 
 
 		if(rxData != '\0'){
@@ -176,8 +217,12 @@ int main(void){
 				uint8_t AccelX_high = i2c_readSingleRegister(&handlerAccelerometer, ACCEL_XOUT_H);
 				int16_t AccelX = AccelX_high << 8 | accelX_low;
 				float AccelX_conv = convertirUnidades(AccelX);
-				sprintf(bufferData, "AccelX = %#.2f m/s² \n", AccelX_conv);
+//				bufferData = {0};
+				sprintf(bufferData, "AccelX = %15.2f m/s2", AccelX_conv);
+//				sprintf(bufferData, "AccelX = %4.2f m/s2 \n", AccelX_conv);
 				writeMsg(&handlerCommTerminal, bufferData);
+
+				LCD_out_Msg(&handlerLCD, bufferData);
 				rxData = '\0';
 			}
 			else if(rxData == 'y'){
@@ -186,7 +231,7 @@ int main(void){
 				uint8_t AccelY_high = i2c_readSingleRegister(&handlerAccelerometer, ACCEL_YOUT_H);
 				int16_t AccelY = AccelY_high << 8 | AccelY_low;
 				float AccelY_conv = convertirUnidades(AccelY);
-				sprintf(bufferData, "AccelY = %#.2f m/s² \n", AccelY_conv);
+				sprintf(bufferData, "AccelY = %.2f m/s² \n", AccelY_conv);
 				writeMsg(&handlerCommTerminal, bufferData);
 				rxData = '\0';
 			}
@@ -195,7 +240,7 @@ int main(void){
 				uint8_t AccelZ_high = i2c_readSingleRegister(&handlerAccelerometer, ACCEL_ZOUT_H);
 				int16_t AccelZ = AccelZ_high << 8 | AccelZ_low;
 				float AccelZ_conv = convertirUnidades(AccelZ);
-				sprintf(bufferData, "AccelZ = %#.2f m/s² \n", AccelZ_conv);
+				sprintf(bufferData, "AccelZ = %.2f m/s² \n", AccelZ_conv);
  				writeMsg(&handlerCommTerminal, bufferData);
 				rxData = '\0';
 			}
@@ -209,121 +254,86 @@ int main(void){
 				rxData = 0;
 
 			}
+			else if(rxData == 'm'){
+//				LCD_XY(&handlerLCD, 1, 1);
+//				LCD_out_Msg(&handlerLCD, "Eje x =");
+//
+//				LCD_XY(&handlerLCD, 1, 2);
+//				LCD_out_Msg(&handlerLCD, "Eje y =");
 
-//			else if(rxData == 'c'){
-//
-//				muestreo = 0;
-//				sprintf(bufferData, "Realizando captura de datos \n");
-//				writeMsg(&handlerCommTerminal, bufferData);
-//
-//				while(muestreo < 2000){
-//
-//					EjeX = AccelX_conv();
-//					EjeY = AccelY_conv();
-//					EjeZ = AccelZ_cov();
-//
-//					DatosEjeX[muestreo] = EjeX;
-//					DatosEjeY[muestreo] = EjeY;
-//					DatosEjeZ[muestreo] = EjeZ;
-//				}
-//				a = 0;
-//				while(a < 2000){
-//					float x = DatosEjeX[a];
-////					float y = DatosEjeY[a];
-////					float z = DatosEjeZ[a];
-////					sprintf(bufferData, "%.2f m/s² ; %.2f m/s² ; %.2f m/ s²\n",x,y,z);
-//					sprintf(bufferData, "Eje x = %.2f m/s²", x);
-//					writeMsg(&handlerCommTerminal, bufferData);
-//					a++;
-//				}
-//
-//				}
 
+
+				rxData = 0;
 			}
+			else if(rxData == 'c'){
+				numDato = 0;
+				sprintf(bufferData, "Se está realizando la captura de datos \n");
+				writeMsg(&handlerCommTerminal, bufferData);
+
+				while(numDato < 2000){ 		//Garantizar los 2 segundos de medición
+
+					if(muestreo != 0){		//Garantizar que sólo tome datos cuando el timer lo indique
+
+						EjeX = AccelX_conv();
+						EjeY = AccelY_conv();
+						EjeZ = AccelZ_conv();
+
+						DatosEjeX[numDato] = EjeX;
+						DatosEjeY[numDato] = EjeY;
+						DatosEjeZ[numDato] = EjeZ;
+						numDato++;
+						muestreo = 0;
+					}
+				}
+
+				//Al salir del ciclo anterior, quiere decir que ya se tomaron los datos y se procede a imprimirlos
+
+				numDato = 0;
+				sprintf(bufferData, "Dato X ; Dato Y ; Dato Z \n");
+				writeMsg(&handlerCommTerminal, bufferData);
+
+				while(numDato < 2000){
+					sprintf(bufferData, "%.2f m/s² ; %.2f m/s² ; %.2f m/s² \n", DatosEjeX[numDato], DatosEjeY[numDato], DatosEjeZ[numDato]);
+					writeMsg(&handlerCommTerminal, bufferData);
+					numDato++;
+
+				}
+
+				sprintf(bufferData, "Impresion exitosa \n");
+				writeMsg(&handlerCommTerminal, bufferData);
+				rxData = 0;
+			}
+
 			else{
 				rxData = '\0';
 			}
 
-		}
+		}	//Fin if(rxData != '0')
 
+	}	//FIn while
 
+}	//FIn main
 
-//		if(rxData != '\0'){
-//			writeChar(&handlerCommTerminal, rxData);
-//
-//			if(rxData == 'w'){
-//				sprintf(bufferData, "WHO_AM_I? (r)\n");
-//				writeMsg(&handlerCommTerminal, bufferData);
-////
-//				i2cBuffer = i2c_readSingleRegister(&handlerAccelerometer, WHO_AM_I);
-//				sprintf(bufferData, "dataRead = 0x%x \n", (unsigned int) i2cBuffer);
-//				writeMsg(&handlerCommTerminal, bufferData);
-//				rxData = '\0';
-//			}
-//			else if(rxData == 'p'){
-//
-//				sprintf(bufferData, "PWR_MGMT_1 state (r)\n");
-//				writeMsg(&handlerCommTerminal, bufferData);
-//
-//				i2cBuffer = i2c_readSingleRegister(&handlerAccelerometer, PWR_MGMT_1);
-//				sprintf(bufferData, "dataRead = 0x%x \n", (unsigned int) i2cBuffer);
-//				writeMsg(&handlerCommTerminal, bufferData);
-//				rxData = 0;
-//
-//			}
-//			else if(rxData == 'r'){
-//				sprintf(bufferData, "PWR_MGMT_1 reset (w)\n");
-//				writeMsg(&handlerCommTerminal, bufferData);
-//
-//				i2c_writeSingleRegister(&handlerAccelerometer, PWR_MGMT_1, 0x00);
-//				rxData = '\0';
-//			}
-//
-//			else if(rxData == 'x'){
-//				sprintf(bufferData, "Axis X data (r)\n");
-//				writeMsg(&handlerCommTerminal, bufferData);
-//
-//				uint8_t accelX_low = i2c_readSingleRegister(&handlerAccelerometer, ACCEL_XOUT_L);
-//				uint8_t AccelX_high = i2c_readSingleRegister(&handlerAccelerometer, ACCEL_XOUT_H);
-//				int16_t AccelX = AccelX_high << 8 | accelX_low;
-//				sprintf(bufferData, "AccelX = %d \n", (int)AccelX);
-//				writeMsg(&handlerCommTerminal, bufferData);
-//				rxData = '\0';
-//
-//			}
-//			else if(rxData == 'y'){
-//				sprintf(bufferData, "Axis Y data (r)\n");
-//				writeMsg(&handlerCommTerminal, bufferData);
-//				uint8_t AccelY_low = i2c_readSingleRegister(&handlerAccelerometer, ACCEL_YOUT_L);
-//				uint8_t AccelY_high = i2c_readSingleRegister(&handlerAccelerometer, ACCEL_YOUT_H);
-//				int16_t AccelY = AccelY_high << 8 | AccelY_low;
-//				sprintf(bufferData, "AccelY = %d \n", (int)AccelY);
-//				writeMsg(&handlerCommTerminal, bufferData);
-//				rxData = '\0';
-//			}
-//			else if(rxData == 'z'){
-//				sprintf(bufferData, "Axis Z data(r)\n");
-//				writeMsg(&handlerCommTerminal, bufferData);
-//				uint8_t AccelZ_low = i2c_readSingleRegister(&handlerAccelerometer, ACCEL_ZOUT_L);
-//				uint8_t AccelZ_high = i2c_readSingleRegister(&handlerAccelerometer, ACCEL_ZOUT_H);
-//				int16_t AccelZ = AccelZ_high << 8 | AccelZ_low;
-//				sprintf(bufferData, "AccelZ = %d \n", (int)AccelZ);
-//				writeMsg(&handlerCommTerminal, bufferData);
-//				rxData = '\0';
-//			}
-//			else {
-//				rxData = '\0';
-//			}
-//
-//
-//
-//		}
+int16_t AccelX_non_conv(void){
+	uint8_t accelX_low = i2c_readSingleRegister(&handlerAccelerometer, ACCEL_XOUT_L);
+	uint8_t AccelX_high = i2c_readSingleRegister(&handlerAccelerometer, ACCEL_XOUT_H);
+	int16_t AccelX = AccelX_high << 8 | accelX_low;
+	return AccelX;
+}
 
+int16_t AccelY_non_conv(void){
+	uint8_t AccelY_low = i2c_readSingleRegister(&handlerAccelerometer, ACCEL_YOUT_L);
+	uint8_t AccelY_high = i2c_readSingleRegister(&handlerAccelerometer, ACCEL_YOUT_H);
+	int16_t AccelY = AccelY_high << 8 | AccelY_low;
+	return AccelY;
+}
 
-
-	}
-
-
+int16_t AccelZ_non_conv(void){
+	uint8_t AccelZ_low = i2c_readSingleRegister(&handlerAccelerometer, ACCEL_ZOUT_L);
+	uint8_t AccelZ_high = i2c_readSingleRegister(&handlerAccelerometer, ACCEL_ZOUT_H);
+	int16_t AccelZ = AccelZ_high << 8 | AccelZ_low;
+	return AccelZ;
+}
 
 
 
@@ -345,7 +355,7 @@ float AccelY_conv(void){
 }
 
 
-float AccelZ_cov(void){
+float AccelZ_conv(void){
 	uint8_t AccelZ_low = i2c_readSingleRegister(&handlerAccelerometer, ACCEL_ZOUT_L);
 	uint8_t AccelZ_high = i2c_readSingleRegister(&handlerAccelerometer, ACCEL_ZOUT_H);
 	int16_t AccelZ = AccelZ_high << 8 | AccelZ_low;
@@ -383,14 +393,15 @@ void init_acelerometro(void){
 //	writeMsg(&handlerCommTerminal, bufferData);
 
 	if((SlaveAdress == 0x68) && (PWR_STATE == 0x00)){
-		sprintf(bufferData, "Acelerometro inicializado \n");
+		sprintf(bufferData, "Acelerometro inicializado");
 		writeMsg(&handlerCommTerminal, bufferData);
 	}
 }
 
 float convertirUnidades(int16_t valorAccel){
 	float auxAccel = 0.0;
-	auxAccel = (((float)valorAccel)/1638.4)* GRAVEDAD;
+//	auxAccel = ((((float)valorAccel)*2.0)/(65535.0*2.0))* GRAVEDAD;
+	auxAccel = (((float)valorAccel)*2*GRAVEDAD)/(32767.0);
 	return auxAccel;
 }
 void init_hardware(void){
@@ -406,7 +417,15 @@ void init_hardware(void){
 
 	GPIO_Config(&handlerLedOK);
 
-	//Configuración de la comunicación serial:
+	handlerStateOKTimer.ptrTIMx  = TIM2;
+	handlerStateOKTimer.TIMx_Config.TIMx_mode = BTIMER_MODE_UP;
+	handlerStateOKTimer.TIMx_Config.TIMx_speed = BTIMER_SPEED_100us_80MHz;
+	handlerStateOKTimer.TIMx_Config.TIMx_period = 2500;
+	handlerStateOKTimer.TIMx_Config.TIMx_interruptEnable = BTIMER_INTERRUPT_ENABLE;
+
+	BasicTimer_Config(&handlerStateOKTimer);
+
+	//Configuración de la comunicación serial USART1
 
 	handlerPinTX.pGPIOx = GPIOA;
 	handlerPinTX.GPIO_PinConfig.GPIO_PinNumber = PIN_9;
@@ -438,16 +457,10 @@ void init_hardware(void){
 
 	USART_Config(&handlerCommTerminal);
 
-	handlerStateOKTimer.ptrTIMx  = TIM2;
-	handlerStateOKTimer.TIMx_Config.TIMx_mode = BTIMER_MODE_UP;
-	handlerStateOKTimer.TIMx_Config.TIMx_speed = BTIMER_SPEED_100us_80MHz;
-	handlerStateOKTimer.TIMx_Config.TIMx_period = 2500;
-	handlerStateOKTimer.TIMx_Config.TIMx_interruptEnable = BTIMER_INTERRUPT_ENABLE;
-
-	BasicTimer_Config(&handlerStateOKTimer);
 
 
-	//Pines con los que funciona el I2C
+
+	// Comunicación I2C con el acelerómetro
 
 	handlerI2cSCL.pGPIOx = GPIOB;
 	handlerI2cSCL.GPIO_PinConfig.GPIO_PinNumber = PIN_8;
@@ -476,8 +489,19 @@ void init_hardware(void){
 
 	i2c_config(&handlerAccelerometer);
 
+	// Timer que controla el barrido del acelerómetro
 
-//	//Configurar la comunicación con la pantalla
+	handlerAcelerometro.ptrTIMx  							= TIM5;
+	handlerAcelerometro.TIMx_Config.TIMx_mode 				= BTIMER_MODE_UP;
+	handlerAcelerometro.TIMx_Config.TIMx_speed 				= BTIMER_SPEED_100us_80MHz;
+	handlerAcelerometro.TIMx_Config.TIMx_period 			= 10;
+	handlerAcelerometro.TIMx_Config.TIMx_interruptEnable 	= BTIMER_INTERRUPT_ENABLE;
+
+	BasicTimer_Config(&handlerAcelerometro);
+
+
+	// Comunicación I2C con la pantalla
+
 	handlerLCD_SCL.pGPIOx		= GPIOB;
 	handlerLCD_SCL.GPIO_PinConfig.GPIO_PinNumber = PIN_10;
 	handlerLCD_SCL.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_ALTFN;
@@ -505,12 +529,12 @@ void init_hardware(void){
 
 	i2c_config(&handlerLCD);
 
-	//Configuro el systick para que el reloj sea el PLL de 80MHz
+	// Configuración del systick para que el reloj sea el PLL de 80MHz
 	config_SysTick_ms(PLL_80MHz_CLOCK_CONFIGURED);
 
 
 
-	//configurar el pin para medir la señal de reloj del micro
+	// Configuración del pin para medir la frecuencia del micro
 
 	handlerMCO1.pGPIOx 										= GPIOA;
 	handlerMCO1.GPIO_PinConfig.GPIO_PinNumber 				= PIN_8;
@@ -522,22 +546,98 @@ void init_hardware(void){
 
 	GPIO_Config(&handlerMCO1);
 
-	handlerAcelerometro.ptrTIMx  = TIM4;
-	handlerAcelerometro.TIMx_Config.TIMx_mode = BTIMER_MODE_UP;
-	handlerAcelerometro.TIMx_Config.TIMx_speed = BTIMER_SPEED_100us_80MHz;
-	handlerAcelerometro.TIMx_Config.TIMx_period = 10;
-	handlerAcelerometro.TIMx_Config.TIMx_interruptEnable = BTIMER_INTERRUPT_ENABLE;
-
-	BasicTimer_Config(&handlerAcelerometro);
-
-
 	//Configuración de los PWM
 
+	//	PWM1
+	//Configuración del Pin para que funcione como salida de PWM
+
+	handlerGPIO_PWM1.pGPIOx									= GPIOC;
+	handlerGPIO_PWM1.GPIO_PinConfig.GPIO_PinNumber			= PIN_6;
+	handlerGPIO_PWM1.GPIO_PinConfig.GPIO_PinMode			= GPIO_MODE_ALTFN;
+	handlerGPIO_PWM1.GPIO_PinConfig.GPIO_PinOPType			= GPIO_OTYPE_PUSHPULL;
+	handlerGPIO_PWM1.GPIO_PinConfig.GPIO_PinPuPdControl		= GPIO_PUPDR_NOTHING;
+	handlerGPIO_PWM1.GPIO_PinConfig.GPIO_PinSpeed			= GPIO_OSPEED_FAST;
+	handlerGPIO_PWM1.GPIO_PinConfig.GPIO_PinAltFunMode		= AF2;
+
+	GPIO_Config(&handlerGPIO_PWM1);
+
+	//Configurar el timer para que genere la señal PWM
+
+	handlerPWM1.ptrTIMx							= TIM3;
+	handlerPWM1.config.channel					= PWM_CHANNEL_1;
+	handlerPWM1.config.periodo					= 6554;
+	handlerPWM1.config.prescaler				= BTIMER_SPEED_100us_80MHz;
+	handlerPWM1.config.duttyCicle				= Dutty;
+
+	pwm_Config(&handlerPWM1);
+
+
+	//Activamos la señal de PWM por el TIM3
+	startPwmSignal(&handlerPWM1);
+	//Activamos la señal por el canal 1
+	enableOutput(&handlerPWM1);
+
+
+	//	PWM2
+	//Configuramos el pin para que funcione como salida de PWM
+
+	handlerGPIO_PWM2.pGPIOx									= GPIOC;
+	handlerGPIO_PWM2.GPIO_PinConfig.GPIO_PinNumber			= PIN_9;
+	handlerGPIO_PWM2.GPIO_PinConfig.GPIO_PinMode			= GPIO_MODE_ALTFN;
+	handlerGPIO_PWM2.GPIO_PinConfig.GPIO_PinOPType			= GPIO_OTYPE_PUSHPULL;
+	handlerGPIO_PWM2.GPIO_PinConfig.GPIO_PinPuPdControl		= GPIO_PUPDR_NOTHING;
+	handlerGPIO_PWM2.GPIO_PinConfig.GPIO_PinSpeed			= GPIO_OSPEED_FAST;
+	handlerGPIO_PWM2.GPIO_PinConfig.GPIO_PinAltFunMode		= AF2;
+
+	GPIO_Config(&handlerGPIO_PWM2);
+
+	//Configurar el timer para que genere la señal PWM
+
+	handlerPWM2.ptrTIMx							= TIM3;
+	handlerPWM2.config.channel					= PWM_CHANNEL_4;
+	handlerPWM2.config.periodo					= 200;
+	handlerPWM2.config.prescaler				= BTIMER_SPEED_100us_80MHz;
+	handlerPWM2.config.duttyCicle				= 100;
+
+	pwm_Config(&handlerPWM2);
+
+	//Activamos la señal de PWM por el TIM3
+	startPwmSignal(&handlerPWM2);
+	//Activamos la señal por el canal 4
+	enableOutput(&handlerPWM2);
 
 
 
+	//	PWM3
+	//Configuramos el pin para que funcione como salida de PWM
 
-}
+	handlerGPIO_PWM3.pGPIOx									= GPIOC;
+	handlerGPIO_PWM3.GPIO_PinConfig.GPIO_PinNumber			= PIN_8;
+	handlerGPIO_PWM3.GPIO_PinConfig.GPIO_PinMode			= GPIO_MODE_ALTFN;
+	handlerGPIO_PWM3.GPIO_PinConfig.GPIO_PinOPType			= GPIO_OTYPE_PUSHPULL;
+	handlerGPIO_PWM3.GPIO_PinConfig.GPIO_PinPuPdControl		= GPIO_PUPDR_NOTHING;
+	handlerGPIO_PWM3.GPIO_PinConfig.GPIO_PinSpeed			= GPIO_OSPEED_FAST;
+	handlerGPIO_PWM3.GPIO_PinConfig.GPIO_PinAltFunMode		= AF2;
+
+	GPIO_Config(&handlerGPIO_PWM3);
+
+	//Configurar el timer para que genere la señal PWM
+
+	handlerPWM3.ptrTIMx								= TIM3;
+	handlerPWM3.config.channel						= PWM_CHANNEL_3;
+	handlerPWM3.config.periodo						= 200;
+	handlerPWM3.config.prescaler					= BTIMER_SPEED_100us_80MHz;
+	handlerPWM3.config.duttyCicle					= 100;
+
+	pwm_Config(&handlerPWM3);
+
+	//Activamos la señal de PWM por el TIM3
+	startPwmSignal(&handlerPWM3);
+	//Activamos la señal por el canal 4
+	enableOutput(&handlerPWM3);
+
+}	//Fin init_hardware
+
 
 
 
@@ -550,16 +650,17 @@ void usart1Rx_Callback(void){
 }
 
 //Callback para la transmisión del USART2
-void usart2Tx_Callback(void){
+void usart1Tx_Callback(void){
 
 }
 
 
 void BasicTimer2_Callback(void){
 	GPIO_TooglePin(&handlerLedOK);
+	FlagDatos++;
 }
 
-void BasicTimer4_Callback(void){
+void BasicTimer5_Callback(void){
 	muestreo++;
 
 
