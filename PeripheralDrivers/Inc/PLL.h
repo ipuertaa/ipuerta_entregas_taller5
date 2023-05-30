@@ -12,6 +12,7 @@
 
 //Función que configura la velocidad del micro a 80MHz
 void configPLL80MHz(void);
+uint8_t getConfigPLL(uint8_t PLLP, uint8_t PLLN);
 
 
 #endif /* PLL_H_ */

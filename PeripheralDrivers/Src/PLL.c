@@ -130,3 +130,10 @@ void configPLL80MHz(void){
 
 }
 
+uint8_t getConfigPLL(uint8_t PLLP, uint8_t PLLN){
+
+	uint8_t Fsalida = 0;
+	Fsalida = (PLLN*2)/PLLP;
+	return Fsalida;
+}
+

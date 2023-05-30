@@ -59,6 +59,7 @@ uint8_t FlagDatos = 0;
 float EjeX = 0;
 float EjeY = 0;
 float EjeZ = 0;
+float dataX = 0;
 float DatosEjeX[2000] = {0};
 float DatosEjeY[2000] = {0};
 float DatosEjeZ[2000] = {0};
@@ -94,6 +95,7 @@ uint8_t mes = 5;
 uint8_t anio = 23;
 uint8_t banderaCaptura = 0;
 uint16_t a = 0;
+uint16_t frecuenciaPLL = 0;
 
 char mensajeLCD[] = "Tarea Taller 5";
 char hpta[]= "Eje x =";
@@ -138,24 +140,25 @@ int main(void){
 
 	//Inicializar todos los elementos
 	configPLL80MHz();
+	//Imprimir un mensaje de inicio
 	init_hardware();
 	init_acelerometro();
+	writeMsg(&handlerCommTerminal, "Tarea Especial Taller 5 \nIsabel Puerta Alvarez \n");
+	writeMsg(&handlerCommTerminal, "Inicializando sistema, espere por favor\n");
+
 	Init_LCD(&handlerLCD);
 
 	//Activar el punto flotante
 	SCB->CPACR |= (0x0F << 20);
 
-	//Imprimir un mensaje de inicio
-	sprintf(mensajePrueba, "Iniciando sistema \n");
-	writeMsg(&handlerCommTerminal, mensajePrueba);
-	delay_ms(100);
+//	writeMsg(&handlerCommTerminal, mensajePrueba);
 
 
 	LCD_XY(&handlerLCD, 3, 2);
 	LCD_out_Msg(&handlerLCD, "Tarea Taller 5");
 	delay_ms(1000);
 	LCD_XY(&handlerLCD, 1, 4);
-	LCD_out_Msg(&handlerLCD, "Pulsa para continuar");
+	LCD_out_Msg(&handlerLCD, "Isabel Puerta A");
 	delay_ms(1000);
 	comandos_LCD(&handlerLCD, CLEAR);
 	delay_ms(10);
@@ -166,6 +169,12 @@ int main(void){
 	LCD_out_Msg(&handlerLCD, "Eje Y =         m/s2");
 	LCD_XY(&handlerLCD, 1, 3);
 	LCD_out_Msg(&handlerLCD, "Eje Z =         m/s2");
+	LCD_XY(&handlerLCD, 1, 4);
+	LCD_out_Msg(&handlerLCD, "Sensit:16384 LSB/g");
+
+	writeMsg(&handlerCommTerminal, "Sistema inicializado con éxito \nPulse 'o' para ver sus opciones\n");
+
+
 
 
 
@@ -174,25 +183,16 @@ int main(void){
 		if(muestreo != 0){
 
 			//Realizando el barrido de los datos cada 1KHz = 1 ms
-			EjeZ = AccelX_non_conv();
-			EjeY = AccelY_non_conv();
-			EjeX = AccelZ_non_conv();
-
-			NewDutty = (uint16_t) (Dutty + (EjeX/10));
-			updateDuttyCycle(&handlerPWM1, NewDutty);
-
-
-
-
-//			else if(EjeX > (-20.00f) && EjeX <(20.00f)){
-//				Dutty = 100;
-//				updateDuttyCycle(&handlerPWM1, Dutty);
-//			}
+			EjeZ = AccelX_conv();
+			EjeY = AccelY_conv();
+			EjeX = AccelZ_conv();
 
 			muestreo = 0;
 		}
-
-//			FlagDatos = 0;
+		/*
+		 * Se utiliza el la interrupción del timer asociado al led de estado para controlar que se refresquen
+		 * los datos de aceleración cada 1s.  250 ms * 4 = 1000 ms = 1s
+		 */
 		if(FlagDatos > 4){
 			sprintf(bufferData, "%.2f", EjeX);
 			LCD_XY(&handlerLCD, 9, 1);
@@ -210,61 +210,48 @@ int main(void){
 
 
 		if(rxData != '\0'){
+			if(rxData == 'o'){
 
-			if(rxData == 'x'){
+				writeMsg(&handlerCommTerminal, "Oprimir 'x' para obtener el valor de la aceleración en el eje x\n");
+				writeMsg(&handlerCommTerminal, "\nOprimir 'y' para obtener el valor de la aceleración en el eje y\n");
+				writeMsg(&handlerCommTerminal, "\nOprimir 'z' para obtener el valor de la aceleración en el eje z\n");
+				writeMsg(&handlerCommTerminal, "\nOprima la letra 'i' para obtener información sobre la frecuencia del MCU\n");
+				writeMsg(&handlerCommTerminal, "\nOprima la letra 'c' y espere unos segundos para obtener una captura de 6000 datos de los 3 ejes.\nLa primera columna corresponderá a X, la segunda a Y y la tercera a Z\n");
 
-				uint8_t accelX_low = i2c_readSingleRegister(&handlerAccelerometer, ACCEL_XOUT_L);
-				uint8_t AccelX_high = i2c_readSingleRegister(&handlerAccelerometer, ACCEL_XOUT_H);
-				int16_t AccelX = AccelX_high << 8 | accelX_low;
-				float AccelX_conv = convertirUnidades(AccelX);
-//				bufferData = {0};
-				sprintf(bufferData, "AccelX = %15.2f m/s2", AccelX_conv);
-//				sprintf(bufferData, "AccelX = %4.2f m/s2 \n", AccelX_conv);
+				rxData = '\0';
+
+			}
+
+
+			else if(rxData == 'x'){
+
+				sprintf(bufferData, "\nAccelX = %.2f m/s²\n", EjeX);
 				writeMsg(&handlerCommTerminal, bufferData);
 
-				LCD_out_Msg(&handlerLCD, bufferData);
 				rxData = '\0';
 			}
 			else if(rxData == 'y'){
 
-				uint8_t AccelY_low = i2c_readSingleRegister(&handlerAccelerometer, ACCEL_YOUT_L);
-				uint8_t AccelY_high = i2c_readSingleRegister(&handlerAccelerometer, ACCEL_YOUT_H);
-				int16_t AccelY = AccelY_high << 8 | AccelY_low;
-				float AccelY_conv = convertirUnidades(AccelY);
-				sprintf(bufferData, "AccelY = %.2f m/s² \n", AccelY_conv);
+				sprintf(bufferData, "\nAccelY = %.2f m/s² \n", EjeY);
 				writeMsg(&handlerCommTerminal, bufferData);
 				rxData = '\0';
 			}
 			else if(rxData == 'z'){
-				uint8_t AccelZ_low = i2c_readSingleRegister(&handlerAccelerometer, ACCEL_ZOUT_L);
-				uint8_t AccelZ_high = i2c_readSingleRegister(&handlerAccelerometer, ACCEL_ZOUT_H);
-				int16_t AccelZ = AccelZ_high << 8 | AccelZ_low;
-				float AccelZ_conv = convertirUnidades(AccelZ);
-				sprintf(bufferData, "AccelZ = %.2f m/s² \n", AccelZ_conv);
+
+				sprintf(bufferData, "\nAccelZ = %.2f m/s² \n", EjeZ);
  				writeMsg(&handlerCommTerminal, bufferData);
 				rxData = '\0';
 			}
-
-			else if(rxData == 's'){
-				sprintf(bufferData, "AFS_SEL state (r)\n");
+			else if(rxData == 'i'){
+				frecuenciaPLL = getConfigPLL(2, 80);
+				sprintf(bufferData,"\nPLL frecuencia configurada = %u MHz \n ", frecuenciaPLL);
 				writeMsg(&handlerCommTerminal, bufferData);
-				i2cBuffer = i2c_readSingleRegister(&handlerAccelerometer, AFS_SEL);
-				sprintf(bufferData, "dataRead = 0x%x \n", (unsigned int) i2cBuffer);
-				writeMsg(&handlerCommTerminal, bufferData);
-				rxData = 0;
 
+				writeMsg(&handlerCommTerminal, "Para la medición de la frecuencia se encuentra habilito el pin PA8,\n donde se podrá medir una frecuencia de aproximadamente 16MHz\n");
+				rxData = '\0';
 			}
-			else if(rxData == 'm'){
-//				LCD_XY(&handlerLCD, 1, 1);
-//				LCD_out_Msg(&handlerLCD, "Eje x =");
-//
-//				LCD_XY(&handlerLCD, 1, 2);
-//				LCD_out_Msg(&handlerLCD, "Eje y =");
 
 
-
-				rxData = 0;
-			}
 			else if(rxData == 'c'){
 				numDato = 0;
 				sprintf(bufferData, "Se está realizando la captura de datos \n");
@@ -291,6 +278,7 @@ int main(void){
 				numDato = 0;
 				sprintf(bufferData, "Dato X ; Dato Y ; Dato Z \n");
 				writeMsg(&handlerCommTerminal, bufferData);
+				delay_ms(500);
 
 				while(numDato < 2000){
 					sprintf(bufferData, "%.2f m/s² ; %.2f m/s² ; %.2f m/s² \n", DatosEjeX[numDato], DatosEjeY[numDato], DatosEjeZ[numDato]);
@@ -299,7 +287,7 @@ int main(void){
 
 				}
 
-				sprintf(bufferData, "Impresion exitosa \n");
+				sprintf(bufferData, "\nImpresion exitosa \n");
 				writeMsg(&handlerCommTerminal, bufferData);
 				rxData = 0;
 			}
@@ -393,15 +381,14 @@ void init_acelerometro(void){
 //	writeMsg(&handlerCommTerminal, bufferData);
 
 	if((SlaveAdress == 0x68) && (PWR_STATE == 0x00)){
-		sprintf(bufferData, "Acelerometro inicializado");
+		sprintf(bufferData, "Acelerometro inicializado \n");
 		writeMsg(&handlerCommTerminal, bufferData);
 	}
 }
 
 float convertirUnidades(int16_t valorAccel){
 	float auxAccel = 0.0;
-//	auxAccel = ((((float)valorAccel)*2.0)/(65535.0*2.0))* GRAVEDAD;
-	auxAccel = (((float)valorAccel)*2*GRAVEDAD)/(32767.0);
+	auxAccel = (valorAccel*9.81)/16384;
 	return auxAccel;
 }
 void init_hardware(void){
@@ -549,92 +536,92 @@ void init_hardware(void){
 	//Configuración de los PWM
 
 	//	PWM1
-	//Configuración del Pin para que funcione como salida de PWM
-
-	handlerGPIO_PWM1.pGPIOx									= GPIOC;
-	handlerGPIO_PWM1.GPIO_PinConfig.GPIO_PinNumber			= PIN_6;
-	handlerGPIO_PWM1.GPIO_PinConfig.GPIO_PinMode			= GPIO_MODE_ALTFN;
-	handlerGPIO_PWM1.GPIO_PinConfig.GPIO_PinOPType			= GPIO_OTYPE_PUSHPULL;
-	handlerGPIO_PWM1.GPIO_PinConfig.GPIO_PinPuPdControl		= GPIO_PUPDR_NOTHING;
-	handlerGPIO_PWM1.GPIO_PinConfig.GPIO_PinSpeed			= GPIO_OSPEED_FAST;
-	handlerGPIO_PWM1.GPIO_PinConfig.GPIO_PinAltFunMode		= AF2;
-
-	GPIO_Config(&handlerGPIO_PWM1);
-
-	//Configurar el timer para que genere la señal PWM
-
-	handlerPWM1.ptrTIMx							= TIM3;
-	handlerPWM1.config.channel					= PWM_CHANNEL_1;
-	handlerPWM1.config.periodo					= 6554;
-	handlerPWM1.config.prescaler				= BTIMER_SPEED_100us_80MHz;
-	handlerPWM1.config.duttyCicle				= Dutty;
-
-	pwm_Config(&handlerPWM1);
-
-
-	//Activamos la señal de PWM por el TIM3
-	startPwmSignal(&handlerPWM1);
-	//Activamos la señal por el canal 1
-	enableOutput(&handlerPWM1);
-
-
-	//	PWM2
-	//Configuramos el pin para que funcione como salida de PWM
-
-	handlerGPIO_PWM2.pGPIOx									= GPIOC;
-	handlerGPIO_PWM2.GPIO_PinConfig.GPIO_PinNumber			= PIN_9;
-	handlerGPIO_PWM2.GPIO_PinConfig.GPIO_PinMode			= GPIO_MODE_ALTFN;
-	handlerGPIO_PWM2.GPIO_PinConfig.GPIO_PinOPType			= GPIO_OTYPE_PUSHPULL;
-	handlerGPIO_PWM2.GPIO_PinConfig.GPIO_PinPuPdControl		= GPIO_PUPDR_NOTHING;
-	handlerGPIO_PWM2.GPIO_PinConfig.GPIO_PinSpeed			= GPIO_OSPEED_FAST;
-	handlerGPIO_PWM2.GPIO_PinConfig.GPIO_PinAltFunMode		= AF2;
-
-	GPIO_Config(&handlerGPIO_PWM2);
-
-	//Configurar el timer para que genere la señal PWM
-
-	handlerPWM2.ptrTIMx							= TIM3;
-	handlerPWM2.config.channel					= PWM_CHANNEL_4;
-	handlerPWM2.config.periodo					= 200;
-	handlerPWM2.config.prescaler				= BTIMER_SPEED_100us_80MHz;
-	handlerPWM2.config.duttyCicle				= 100;
-
-	pwm_Config(&handlerPWM2);
-
-	//Activamos la señal de PWM por el TIM3
-	startPwmSignal(&handlerPWM2);
-	//Activamos la señal por el canal 4
-	enableOutput(&handlerPWM2);
-
-
-
-	//	PWM3
-	//Configuramos el pin para que funcione como salida de PWM
-
-	handlerGPIO_PWM3.pGPIOx									= GPIOC;
-	handlerGPIO_PWM3.GPIO_PinConfig.GPIO_PinNumber			= PIN_8;
-	handlerGPIO_PWM3.GPIO_PinConfig.GPIO_PinMode			= GPIO_MODE_ALTFN;
-	handlerGPIO_PWM3.GPIO_PinConfig.GPIO_PinOPType			= GPIO_OTYPE_PUSHPULL;
-	handlerGPIO_PWM3.GPIO_PinConfig.GPIO_PinPuPdControl		= GPIO_PUPDR_NOTHING;
-	handlerGPIO_PWM3.GPIO_PinConfig.GPIO_PinSpeed			= GPIO_OSPEED_FAST;
-	handlerGPIO_PWM3.GPIO_PinConfig.GPIO_PinAltFunMode		= AF2;
-
-	GPIO_Config(&handlerGPIO_PWM3);
-
-	//Configurar el timer para que genere la señal PWM
-
-	handlerPWM3.ptrTIMx								= TIM3;
-	handlerPWM3.config.channel						= PWM_CHANNEL_3;
-	handlerPWM3.config.periodo						= 200;
-	handlerPWM3.config.prescaler					= BTIMER_SPEED_100us_80MHz;
-	handlerPWM3.config.duttyCicle					= 100;
-
-	pwm_Config(&handlerPWM3);
-
-	//Activamos la señal de PWM por el TIM3
-	startPwmSignal(&handlerPWM3);
-	//Activamos la señal por el canal 4
-	enableOutput(&handlerPWM3);
+//	//Configuración del Pin para que funcione como salida de PWM
+//
+//	handlerGPIO_PWM1.pGPIOx									= GPIOC;
+//	handlerGPIO_PWM1.GPIO_PinConfig.GPIO_PinNumber			= PIN_6;
+//	handlerGPIO_PWM1.GPIO_PinConfig.GPIO_PinMode			= GPIO_MODE_ALTFN;
+//	handlerGPIO_PWM1.GPIO_PinConfig.GPIO_PinOPType			= GPIO_OTYPE_PUSHPULL;
+//	handlerGPIO_PWM1.GPIO_PinConfig.GPIO_PinPuPdControl		= GPIO_PUPDR_NOTHING;
+//	handlerGPIO_PWM1.GPIO_PinConfig.GPIO_PinSpeed			= GPIO_OSPEED_FAST;
+//	handlerGPIO_PWM1.GPIO_PinConfig.GPIO_PinAltFunMode		= AF2;
+//
+//	GPIO_Config(&handlerGPIO_PWM1);
+//
+//	//Configurar el timer para que genere la señal PWM
+//
+//	handlerPWM1.ptrTIMx							= TIM3;
+//	handlerPWM1.config.channel					= PWM_CHANNEL_1;
+//	handlerPWM1.config.periodo					= 600;
+//	handlerPWM1.config.prescaler				= BTIMER_SPEED_100us_80MHz;
+//	handlerPWM1.config.duttyCicle				= 300;
+//
+//	pwm_Config(&handlerPWM1);
+//
+//
+//	//Activamos la señal de PWM por el TIM3
+//	startPwmSignal(&handlerPWM1);
+//	//Activamos la señal por el canal 1
+//	enableOutput(&handlerPWM1);
+//
+//
+//	//	PWM2
+//	//Configuramos el pin para que funcione como salida de PWM
+//
+//	handlerGPIO_PWM2.pGPIOx									= GPIOC;
+//	handlerGPIO_PWM2.GPIO_PinConfig.GPIO_PinNumber			= PIN_9;
+//	handlerGPIO_PWM2.GPIO_PinConfig.GPIO_PinMode			= GPIO_MODE_ALTFN;
+//	handlerGPIO_PWM2.GPIO_PinConfig.GPIO_PinOPType			= GPIO_OTYPE_PUSHPULL;
+//	handlerGPIO_PWM2.GPIO_PinConfig.GPIO_PinPuPdControl		= GPIO_PUPDR_NOTHING;
+//	handlerGPIO_PWM2.GPIO_PinConfig.GPIO_PinSpeed			= GPIO_OSPEED_FAST;
+//	handlerGPIO_PWM2.GPIO_PinConfig.GPIO_PinAltFunMode		= AF2;
+//
+//	GPIO_Config(&handlerGPIO_PWM2);
+//
+//	//Configurar el timer para que genere la señal PWM
+//
+//	handlerPWM2.ptrTIMx							= TIM3;
+//	handlerPWM2.config.channel					= PWM_CHANNEL_4;
+//	handlerPWM2.config.periodo					= 300;
+//	handlerPWM2.config.prescaler				= BTIMER_SPEED_100us_80MHz;
+//	handlerPWM2.config.duttyCicle				= 150;
+//
+//	pwm_Config(&handlerPWM2);
+//
+//	//Activamos la señal de PWM por el TIM3
+//	startPwmSignal(&handlerPWM2);
+//	//Activamos la señal por el canal 4
+//	enableOutput(&handlerPWM2);
+//
+//
+//
+//	//	PWM3
+//	//Configuramos el pin para que funcione como salida de PWM
+//
+//	handlerGPIO_PWM3.pGPIOx									= GPIOC;
+//	handlerGPIO_PWM3.GPIO_PinConfig.GPIO_PinNumber			= PIN_8;
+//	handlerGPIO_PWM3.GPIO_PinConfig.GPIO_PinMode			= GPIO_MODE_ALTFN;
+//	handlerGPIO_PWM3.GPIO_PinConfig.GPIO_PinOPType			= GPIO_OTYPE_PUSHPULL;
+//	handlerGPIO_PWM3.GPIO_PinConfig.GPIO_PinPuPdControl		= GPIO_PUPDR_NOTHING;
+//	handlerGPIO_PWM3.GPIO_PinConfig.GPIO_PinSpeed			= GPIO_OSPEED_FAST;
+//	handlerGPIO_PWM3.GPIO_PinConfig.GPIO_PinAltFunMode		= AF2;
+//
+//	GPIO_Config(&handlerGPIO_PWM3);
+//
+//	//Configurar el timer para que genere la señal PWM
+//
+//	handlerPWM3.ptrTIMx								= TIM3;
+//	handlerPWM3.config.channel						= PWM_CHANNEL_3;
+//	handlerPWM3.config.periodo						= 200;
+//	handlerPWM3.config.prescaler					= BTIMER_SPEED_100us_80MHz;
+//	handlerPWM3.config.duttyCicle					= 100;
+//
+//	pwm_Config(&handlerPWM3);
+//
+//	//Activamos la señal de PWM por el TIM3
+//	startPwmSignal(&handlerPWM3);
+//	//Activamos la señal por el canal 4
+//	enableOutput(&handlerPWM3);
 
 }	//Fin init_hardware
 
