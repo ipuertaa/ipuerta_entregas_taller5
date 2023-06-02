@@ -146,7 +146,7 @@ int main(void){
 	writeMsg(&handlerCommTerminal, "Tarea Especial Taller 5 \nIsabel Puerta Alvarez \n");
 	writeMsg(&handlerCommTerminal, "Inicializando sistema, espere por favor\n");
 
-	Init_LCD(&handlerLCD);
+//	Init_LCD(&handlerLCD);
 
 	//Activar el punto flotante
 	SCB->CPACR |= (0x0F << 20);
@@ -154,23 +154,23 @@ int main(void){
 //	writeMsg(&handlerCommTerminal, mensajePrueba);
 
 
-	LCD_XY(&handlerLCD, 3, 2);
-	LCD_out_Msg(&handlerLCD, "Tarea Taller 5");
-	delay_ms(1000);
-	LCD_XY(&handlerLCD, 1, 4);
-	LCD_out_Msg(&handlerLCD, "Isabel Puerta A");
-	delay_ms(1000);
-	comandos_LCD(&handlerLCD, CLEAR);
-	delay_ms(10);
-
-	LCD_XY(&handlerLCD, 1, 1);
-	LCD_out_Msg(&handlerLCD, "Eje X =         m/s2");
-	LCD_XY(&handlerLCD, 1, 2);
-	LCD_out_Msg(&handlerLCD, "Eje Y =         m/s2");
-	LCD_XY(&handlerLCD, 1, 3);
-	LCD_out_Msg(&handlerLCD, "Eje Z =         m/s2");
-	LCD_XY(&handlerLCD, 1, 4);
-	LCD_out_Msg(&handlerLCD, "Sensit:16384 LSB/g");
+//	LCD_XY(&handlerLCD, 3, 2);
+//	LCD_out_Msg(&handlerLCD, "Tarea Taller 5");
+//	delay_ms(1000);
+//	LCD_XY(&handlerLCD, 1, 4);
+//	LCD_out_Msg(&handlerLCD, "Isabel Puerta A");
+//	delay_ms(1000);
+//	comandos_LCD(&handlerLCD, CLEAR);
+//	delay_ms(10);
+//
+//	LCD_XY(&handlerLCD, 1, 1);
+//	LCD_out_Msg(&handlerLCD, "Eje X =         m/s2");
+//	LCD_XY(&handlerLCD, 1, 2);
+//	LCD_out_Msg(&handlerLCD, "Eje Y =         m/s2");
+//	LCD_XY(&handlerLCD, 1, 3);
+//	LCD_out_Msg(&handlerLCD, "Eje Z =         m/s2");
+//	LCD_XY(&handlerLCD, 1, 4);
+//	LCD_out_Msg(&handlerLCD, "Sensit:16384 LSB/g");
 
 	writeMsg(&handlerCommTerminal, "Sistema inicializado con éxito \nPulse 'o' para ver sus opciones\n");
 
@@ -193,20 +193,20 @@ int main(void){
 		 * Se utiliza el la interrupción del timer asociado al led de estado para controlar que se refresquen
 		 * los datos de aceleración cada 1s.  250 ms * 4 = 1000 ms = 1s
 		 */
-		if(FlagDatos > 4){
-			sprintf(bufferData, "%.2f", EjeX);
-			LCD_XY(&handlerLCD, 9, 1);
-			LCD_out_Msg(&handlerLCD, bufferData);
-
-			sprintf(bufferData, "%.2f", EjeY);
-			LCD_XY(&handlerLCD, 9, 2);
-			LCD_out_Msg(&handlerLCD, bufferData);
-
-			sprintf(bufferData, "%.2f", EjeZ);
-			LCD_XY(&handlerLCD, 9, 3);
-			LCD_out_Msg(&handlerLCD, bufferData);
-			FlagDatos = 0;
-		}
+//		if(FlagDatos > 4){
+//			sprintf(bufferData, "%.2f", EjeX);
+//			LCD_XY(&handlerLCD, 9, 1);
+//			LCD_out_Msg(&handlerLCD, bufferData);
+//
+//			sprintf(bufferData, "%.2f", EjeY);
+//			LCD_XY(&handlerLCD, 9, 2);
+//			LCD_out_Msg(&handlerLCD, bufferData);
+//
+//			sprintf(bufferData, "%.2f", EjeZ);
+//			LCD_XY(&handlerLCD, 9, 3);
+//			LCD_out_Msg(&handlerLCD, bufferData);
+//			FlagDatos = 0;
+//		}
 
 
 		if(rxData != '\0'){
@@ -289,7 +289,7 @@ int main(void){
 
 				sprintf(bufferData, "\nImpresion exitosa \n");
 				writeMsg(&handlerCommTerminal, bufferData);
-				rxData = 0;
+				rxData = '\0';
 			}
 
 			else{

@@ -85,7 +85,7 @@ void adc_Config(ADC_Config_t *adcConfig){
 	ADC1->CR2 &= ~ ADC_CR2_CONT;
 
 	/* 7. Acá se debería configurar el sampling...*/
-	if(adcConfig->channel < ADC_CHANNEL_9){
+	if(adcConfig->channel <= ADC_CHANNEL_9){
 		//Limpio todas las posiciones del registro
 		ADC1->SMPR2 = 0;
 		// Para estos canales se configura el ADC_SMPR2
@@ -113,22 +113,24 @@ void adc_Config(ADC_Config_t *adcConfig){
 	ADC->CCR |= ADC_CCR_ADCPRE_0;
 
 	/* 10. Desactivamos las interrupciones globales */
-	// Escriba su código acá
+	__disable_irq();
 
 	/* 11. Activamos la interrupción debida a la finalización de una conversión EOC (CR1)*/
-	// Escriba su código acá
+	ADC1->CR1 &= ~ADC_CR1_EOCIE;
+	ADC1->CR1 |= ADC_CR1_EOCIE;
 
 	/* 11a. Matriculamos la interrupción en el NVIC*/
-	// Escriba su código acá
+	__NVIC_EnableIRQ(ADC_IRQn);
 
 	/* 11b. Configuramos la prioridad para la interrupción ADC */
-	// Escriba su código acá
+	__NVIC_SetPriority(ADC_IRQn, 6);
 
 	/* 12. Activamos el modulo ADC */
-	// Escriba su código acá
+	ADC1->CR2 &= ~ ADC_CR2_ADON;
+	ADC1->CR2 |= ADC_CR2_ADON;
 
 	/* 13. Activamos las interrupciones globales */
-	// Escriba su código acá
+	__enable_irq();
 }
 
 /*
@@ -140,13 +142,14 @@ void adc_Config(ADC_Config_t *adcConfig){
  * */
 void startSingleADC(void){
 	/* Desactivamos el modo continuo de ADC */
-	// Escriba su código acá
+	ADC1->CR2 &= ~ ADC_CR2_CONT;
 
 	/* Limpiamos el bit del overrun (CR1) */
-	// Escriba su código acá
+	ADC1->CR2 &= ~ ADC_CR1_OVRIE;
 
 	/* Iniciamos un ciclo de conversión ADC (CR2)*/
-	// Escriba su código acá
+	ADC1->CR2 &= ~ ADC_CR2_SWSTART;
+	ADC1->CR2 |= ADC_CR2_SWSTART;
 
 }
 
@@ -160,10 +163,11 @@ void startSingleADC(void){
 void startContinousADC(void){
 
 	/* Activamos el modo continuo de ADC */
-	// Escriba su código acá
+	ADC1->CR2 |= ADC_CR2_CONT;
 
 	/* Iniciamos un ciclo de conversión ADC */
-	// Escriba su código acá
+	ADC1->CR2 &= ~ ADC_CR2_SWSTART;
+	ADC1->CR2 |= ADC_CR2_SWSTART;
 
 }
 
@@ -187,6 +191,7 @@ void ADC_IRQHandler(void){
 		// Leemos el resultado de la conversión ADC y lo cargamos en una variale auxiliar
 		// la cual es utilizada en la función getADC()
 		// Escriba su código acá
+		adcRawData = ADC1->DR;
 
 		// Hacemos el llamado a la función que se ejecutará en el main
 		adcComplete_Callback();
