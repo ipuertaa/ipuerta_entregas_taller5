@@ -89,13 +89,13 @@ void adc_Config(ADC_Config_t *adcConfig){
 		//Limpio todas las posiciones del registro
 		ADC1->SMPR2 = 0;
 		// Para estos canales se configura el ADC_SMPR2
-		ADC1->SMPR2 |= ((adcConfig->samplingPeriod) << (adcConfig->channel));
+		ADC1->SMPR2 |= ((adcConfig->samplingPeriod) << (3*(adcConfig->channel)));
 	}
 	else if(adcConfig->channel > ADC_CHANNEL_9){
 		//Limpio todas las posiciones del registro
 		ADC1->SMPR1 = 0;
 		//Para estos canales se configura el ADC_SMPR1
-		ADC1->SMPR1 |= ((adcConfig->samplingPeriod) << ((adcConfig->channel)-10));
+		ADC1->SMPR1 |= ((adcConfig->samplingPeriod) << (3*((adcConfig->channel)-10)));
 	}
 
 	else{
@@ -145,7 +145,8 @@ void startSingleADC(void){
 	ADC1->CR2 &= ~ ADC_CR2_CONT;
 
 	/* Limpiamos el bit del overrun (CR1) */
-	ADC1->CR2 &= ~ ADC_CR1_OVRIE;
+	ADC1->CR1 &= ~ ADC_CR1_OVRIE;
+	ADC1->SR &= ~ADC_SR_OVR;
 
 	/* Iniciamos un ciclo de conversión ADC (CR2)*/
 	ADC1->CR2 &= ~ ADC_CR2_SWSTART;
