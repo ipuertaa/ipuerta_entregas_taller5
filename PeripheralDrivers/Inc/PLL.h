@@ -10,9 +10,23 @@
 
 #include <stm32f4xx.h>
 
-//Función que configura la velocidad del micro a 80MHz
-void configPLL80MHz(void);
-uint8_t getConfigPLL(uint8_t PLLP, uint8_t PLLN);
+#define PLL_FRECUENCIA_80MHZ		1
+#define PLL_FRECUENCIA_100MHZ		2
 
+#define CLOCK_SIGNAL_PLL			3
+#define CLOCK_SIGNAL_HSI			4
+#define CLOCK_SIGNAL_LSE			5
+
+#define MCO1_NOPRESCALER			6
+#define MCO1_PRESCALERX2			7
+#define MCO1_PRESCALERX3			8
+#define MCO1_PRESCALERX4			9
+#define MCO1_PRESCALERX5			10
+
+
+//Función que configura la velocidad del micro a 80MHz
+void configPLL(uint8_t frecuencia);
+uint8_t getConfigPLL(uint8_t PLLP, uint8_t PLLN);
+void configMCO1(uint8_t clockSignal, uint8_t prescaler);
 
 #endif /* PLL_H_ */

@@ -55,12 +55,12 @@ void initSystem(void){
 
 	//configurar LED2 - PA5 - LED DE ESTADO
 
-	handlerStateLED.pGPIOx 										= GPIOA;
+	handlerStateLED.pGPIOx 											= GPIOA;
 	handlerStateLED.GPIO_PinConfig.GPIO_PinNumber 					= PIN_5;
-	handlerStateLED.GPIO_PinConfig.GPIO_PinMode					= GPIO_MODE_OUT;
+	handlerStateLED.GPIO_PinConfig.GPIO_PinMode						= GPIO_MODE_OUT;
 	handlerStateLED.GPIO_PinConfig.GPIO_PinOPType 					= GPIO_OTYPE_PUSHPULL;
 	handlerStateLED.GPIO_PinConfig.GPIO_PinSpeed 					= GPIO_OSPEED_FAST;
-	handlerStateLED.GPIO_PinConfig.GPIO_PinPuPdControl 			= GPIO_PUPDR_NOTHING;
+	handlerStateLED.GPIO_PinConfig.GPIO_PinPuPdControl 				= GPIO_PUPDR_NOTHING;
 
 	GPIO_Config(&handlerStateLED);
 

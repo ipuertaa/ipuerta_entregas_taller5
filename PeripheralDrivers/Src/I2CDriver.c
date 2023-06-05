@@ -8,8 +8,7 @@
 
 #include <stdint.h>
 #include "I2CDriver.h"
-
-
+uint16_t* auxDataAccel;
 
 
 void i2c_config(I2C_Handler_t *ptrHandlerI2C){
@@ -214,7 +213,7 @@ uint8_t i2c_readSingleRegister(I2C_Handler_t *ptrHandlerI2C, uint8_t regToRead){
 	//4. Creamos una condición de re-start
 	i2c_reStartTransaction(ptrHandlerI2C);
 
-	//5. Enviamos la dirección deñ esclavo y la indicación de leer
+	//5. Enviamos la dirección del esclavo y la indicación de leer
 	i2c_sendSlaveAddressRW(ptrHandlerI2C, ptrHandlerI2C->slaveAddress, I2C_READ_DATA);
 
 	//8. Leemos el dato que envía el esclavo
@@ -247,5 +246,90 @@ void i2c_writeSingleRegister(I2C_Handler_t *ptrHandlerI2C, uint8_t regToRead, ui
 
 }
 
+/*
+ * 	Función para leer varios registros en una sóla comunicación.
+ *
+ * 	Los bytes de datos en el I2C son de 8 bits. Pueden transmitirse varios bytes por cada transacción
+ * 	Cada byte que se trasnfiere debe ser seguido por un ACK (señal de reconocimiento)
+ *
+ * 	Secuencia de comunicación:
+ * 	Sobre la señal de ACK: EL maestro libera la linea SDA, para que el esclavo genere la señal ACK, haciéndo pull-down a la
+ * 	línea SDA y manteniéndola en bajo durante el tiempo el tiempo en alto de la línea SCL
+ * 	Dato: si el esclavo está ocupado, lo que hace es llevar a cero el SCL, para forzar al maestro a entrar en modo de espera.
+ *
+ * 	La transmisión de datos se detiene cuando el maestro envía una señal de stop.
+ *
+ * 	Secuencia de la comunicación:
+ *
+ * 	1. Generar la condición de start
+ * 	2. Enviar la dirección del esclavo y la indicación que se desea escribir.
+ * 	3. Enviar la dirección de memoria a leer
+ * 	4. Re start
+ * 	5. Dirección del esclavo e indicación de leer
+ * 	6. Leer el dato que envía el esclavo
+	7. Enviar ACK
+ * 	8. Leer el dato que envía el esclavo
+ * 	9. Enviar ACK
+	10.Enviar NACK
+ * 	11. Leer el dato que envía el esclavo
+ * 	12. No ACK
+ * 	13. Stop transaction
+ *
+ */
+
+uint16_t* i2c_readMultipleRegister(I2C_Handler_t *ptrHandlerI2C, uint8_t regToRead, uint8_t regLimit){
+	uint8_t i = 0;
+	char auxReg[regLimit];
+
+	//1. Generamos la condición de start
+	i2c_startTransaction(ptrHandlerI2C);
+
+	//2. Enviar la dirección del esclavo y la indicación de escribir
+	i2c_sendSlaveAddressRW(ptrHandlerI2C, ptrHandlerI2C->slaveAddress, I2C_WRITE_DATA);
+
+	//3. Enviamos la dirección de memoria a leer. La primera dirección, el resto se irán leyendo en orden
+	i2c_sendMemory_Address(ptrHandlerI2C, regToRead);
+
+	//4. Enviamos la condición de reStart
+	i2c_reStartTransaction(ptrHandlerI2C);
+
+	//5. Enviamos la dirección del esclavo y la indicación de leer
+	i2c_sendSlaveAddressRW(ptrHandlerI2C, ptrHandlerI2C->slaveAddress, I2C_READ_DATA);
+
+	while(i < regLimit){
+
+		//6. Leemos el dato que envía el esclavo
+		*(auxReg + i) = i2c_readDataByte(ptrHandlerI2C);
+
+		if(i == (regLimit - 1)){
+
+			//8. Generamos la condición de NoACK, para que el master no responda y el slave solo envie 1 byte
+			i2c_sendNoAck(ptrHandlerI2C);
+		}
+		else{
+
+			//7. Enviar ACK
+			i2c_sendAck(ptrHandlerI2C);
+		}
+		i++;
+	}
+
+	//9. Generamos la condición de Stop, para que el slave se detenga después de 1 byte
+	i2c_stopTransaction(ptrHandlerI2C);
+
+
+	//Sólo para la toma de datos del acelerómetro:
+
+	//Datos en X = XOUT_HIGH << 8 | XOUT_LOW
+	*(auxDataAccel) = (*(auxReg) << 8) | *(auxReg + 1);
+
+	//Datos en Y = YOUT_HIGH << 8 | XOUT_LOW
+	*(auxDataAccel + 1) = (*(auxReg + 2) << 8) | *(auxReg + 3);
+
+	//Datos en Z = ZOUT_HIGH << 8 ° ZOUT_LOW
+	*(auxDataAccel + 2) = (*(auxReg + 4) << 8) | *(auxReg + 5);
+
+	return auxDataAccel;
+}
 
 
