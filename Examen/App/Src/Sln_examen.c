@@ -22,6 +22,7 @@
 #include "I2CDriver.h"
 #include "PLL.h"
 #include "AdcDriver.h"
+#include "PwmDriver.h"
 
 
 // Elementos para el led de estado PH1 + TIM2

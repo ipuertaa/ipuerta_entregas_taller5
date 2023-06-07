@@ -161,6 +161,17 @@ void ADC_ConfigMultichannel (ADC_Config_t *adcConfig, uint8_t numeroDeCanales){
 
 
 	//Configuramos la conversión mediante eventos controlados por un TIMx
+	//Limpiar el bit del overrun:
+	ADC1->CR1 &= ~ ADC_CR1_OVRIE;
+	ADC1->SR &= ~ADC_SR_OVR;
+
+	//Configurar el tipo de flanco
+	ADC1->CR2 &= ~ADC_CR2_EXTEN;
+	ADC1->CR2 &= ~(adcConfig->EXT_edge << ADC_CR2_EXTEN_Pos);
+
+	//Configurar el canal del timer
+	ADC1->CR2 &= ~ADC_CR2_EXTSEL;
+	ADC1->CR2 &= ~(adcConfig->EXT_sel << ADC_CR2_EXTSEL_Pos);
 
 }
 
