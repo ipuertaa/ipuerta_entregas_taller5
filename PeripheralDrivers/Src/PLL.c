@@ -167,22 +167,6 @@ void configPLL(uint8_t frecuencia){
 		__NOP();
 	}
 
-//	//Para la salida del MCO1
-//
-//	//Limpiar los bits correspondientes
-//	RCC->CFGR &= ~(RCC_CFGR_MCO1);
-//
-//	//Configurar para que la salida sea la del PLL
-//	RCC->CFGR |= (0x3 << RCC_CFGR_MCO1_Pos);
-//
-//	//Limpiar los bits del prescaler
-//	RCC->CFGR &= ~(RCC_CFGR_MCO1PRE);
-//
-//	//Divido la frecuencia entre 5
-//	RCC->CFGR |= (0x7 << RCC_CFGR_MCO1PRE_Pos);
-
-
-
 	//Activar el PLL
 	RCC->CR |= (RCC_CR_PLLON);
 

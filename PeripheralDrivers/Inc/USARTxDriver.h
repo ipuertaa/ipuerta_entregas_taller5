@@ -24,6 +24,11 @@
 #define USART_BAUDRATE_80MHz_19200		4
 #define USART_BAUDRATE_80MHz_115200		5
 
+//Macros para configurar el BRR cuando la velocidad del micro es 100MHz
+#define USART_BAUDRATE_100MHz_9600		6
+#define USART_BAUDRATE_100MHz_19200		7
+#define USART_BAUDRATE_100MHz_115200	8
+
 
 #define USART_DATASIZE_8BIT		0
 #define USART_DATASIZE_9BIT		1

@@ -24,7 +24,7 @@
 #include "AdcDriver.h"
 
 
-// Elementos para el led de estado PH0 + TIM2
+// Elementos para el led de estado PH1 + TIM2
 BasicTimer_Handler_t handlerStateOKTimer = {0};
 GPIO_Handler_t handlerLedOK = {0};
 
@@ -33,8 +33,10 @@ GPIO_Handler_t handlerLedOK = {0};
 GPIO_Handler_t handlerPinTX = {0};
 GPIO_Handler_t handlerPinRX = {0};
 USART_Handler_t handlerCommTerminal = {0};
+
 uint8_t rxData = 0;
 char bufferRx[100];
+char bufferData[100];
 uint16_t counterRx = 0;
 uint8_t stringRxComplete = 0;
 char comando[64];
@@ -43,29 +45,66 @@ unsigned int secondParameter = 0;
 char userMsg[100];
 
 // Elementos para la conversión analogo digital
-ADC_Config_t handlerChannel_0 = {0};
-ADC_Config_t handlerChannel_1 = {0};
+ADC_Config_t ADC_conversion = {0};
+uint16_t ADC_data[2] = {0};
+uint8_t ADC_complete = 0;
+BasicTimer_Handler_t handlerTIM5 = {0};
+uint8_t ADCi = 0;
+
 
 // Elementos para el MOC1
 GPIO_Handler_t handlerMCO1 = {0};
+
+// Elementos para el uso del acelerómetro:
+GPIO_Handler_t handlerAccelSDA = {0};
+GPIO_Handler_t handlerAccelSCL = {0};
+I2C_Handler_t handlerAccel = {0};
+uint16_t ptrdatosAcelerometro[3] = {0};
+
+#define ACCEL_ADDRESS		0b1101001
+#define ACCEL_XOUT_H	59
+#define ACCEL_XOUT_L	60
+#define ACCEL_YOUT_H	61
+#define ACCEL_YOUT_L	62
+#define ACCEL_ZOUT_H	63
+#define ACCEL_ZOUT_L	64
+
+#define PWR_MGMT_1 107
+#define WHO_AM_I 117
+#define AFS_SEL	28
+#define GRAVEDAD	9.8
 
 
 //Definición de cabeceras de funciones
 void identificarComandos (char *ptrbufferRx);
 void init_hardware(void);
+void init_acelerometro(void);
 
 
 int main(void){
 
 	configPLL(PLL_FRECUENCIA_100MHZ);
 	init_hardware();
-	writeMsg(&handlerCommTerminal, "Examen Taller 5 Isabel Puerta Alvarez");
+	writeMsg(&handlerCommTerminal, "Examen Taller 5 Isabel Puerta Alvarez\n");
+	init_acelerometro();
 	writeMsg(&handlerCommTerminal, "\nSistema inicializado con exito\n");
 
-	configMCO1(CLOCK_SIGNAL_PLL, MCO1_PRESCALERX5);
+//	configMCO1(CLOCK_SIGNAL_PLL, MCO1_PRESCALERX5);
+
+	i2c_readMultipleRegister(&handlerAccel, ACCEL_XOUT_H, 6, ptrdatosAcelerometro);
 
 
 	while(1){
+
+		if(ADC_complete == 1){
+			sprintf(bufferData, "Data canal 1: %u\n", ADC_data[0]);
+			writeMsg(&handlerCommTerminal, bufferData);
+			sprintf(bufferData, "\nData canal 2: %u\n", ADC_data[1]);
+			writeMsg(&handlerCommTerminal, bufferData);
+			ADC_complete = 0;
+		}
+
+
 
 		if(rxData != '\0'){
 
@@ -144,7 +183,32 @@ int main(void){
 
 
 
+void init_acelerometro(void){
 
+	/*
+	 * El registro WHO AM I, se usa para identificar el dispositivo.
+	 * Debo recibir 0b1101001 (6 bits, no se tiene en cuenta el del ADO)
+	 * EL valor por defecto es 0x68
+	 *
+	 * En el PWR-MGMT_1 se controla la alimentación.
+	 * Si SLEEP = 1 -> modo de ahorro de energia
+	 * Si CYCLE = 1 y SLEEP = 0 -> entra en modo ciclo
+	 * Si DEVICE_RESET = 1; todos los registros se van a sus valores
+	 * por defecto, luego se vuelve automaticamente a cero
+	 * Por defecto el accel está en SLEEP, por lo que hay que, hay que hacer
+	 * cero el registro 107 para despertarlo
+	 */
+
+	uint8_t SlaveAdress = i2c_readSingleRegister(&handlerAccel, WHO_AM_I);
+	i2c_writeSingleRegister(&handlerAccel, PWR_MGMT_1, 0x00);
+	uint8_t PWR_STATE = i2c_readSingleRegister(&handlerAccel, PWR_MGMT_1);
+
+	if((SlaveAdress == 0x68) && (PWR_STATE == 0x00)){
+		sprintf(bufferData, "\nAcelerometro inicializado\n");
+		writeMsg(&handlerCommTerminal, bufferData);
+	}
+
+}
 
 
 
@@ -163,11 +227,56 @@ void identificarComandos (char *ptrbufferRx){
 
 	if(strcmp(comando, "help") == 0){
 		writeMsg(&handlerCommTerminal, "Menú ayuda. Información sobre los comandos:\n");
+		writeMsg(&handlerCommTerminal, "\n1) MCOconfig #A #B Para configurar el MCO1 escribir \n");
+		writeMsg(&handlerCommTerminal, "                   A = 1 -> HSI, A = 2 -> PLL, A = 3 -> LSE\n");
+		writeMsg(&handlerCommTerminal, "                   B = 1, 2, 3, 4, 5 (prescaler)\n");
+
 	}
+	else if(strcmp(comando, "MCOconfig") == 0){
+		switch (firstParameter){
+		case 1:{
+			if((secondParameter <= 5) && (secondParameter != 0)){
+				configMCO1(CLOCK_SIGNAL_HSI, (uint8_t)secondParameter);
+				writeMsg(&handlerCommTerminal, "\nConfiguración exitosa del MCO1 como salida del HSI");
+			}
+			else{
+				writeMsg(&handlerCommTerminal, "\nValor de prescaler no permitido");
+			}
+		break;
+		}
+
+		case 2:{
+			if((secondParameter <= 5) && (secondParameter != 0)){
+				configMCO1(CLOCK_SIGNAL_PLL, (uint8_t)secondParameter);
+				writeMsg(&handlerCommTerminal, "\nConfiguración exitosa del MCO1 como salida del PLL");
+			}
+			else{
+				writeMsg(&handlerCommTerminal, "\nValor de prescaler no permitido");
+			}
+		break;
+		}
+		case 3:{
+			if((secondParameter <= 5) && (secondParameter != 0)){
+				configMCO1(CLOCK_SIGNAL_LSE, (uint8_t)secondParameter);
+				writeMsg(&handlerCommTerminal, "\nConfiguración exitosa del MCO1 como salida del LSE");
+			}
+			else{
+				writeMsg(&handlerCommTerminal, "\nValor de prescaler no permitido");
+			}
+		break;
+		}
+		default:
+			writeMsg(&handlerCommTerminal, "\nConfiguración de salida de reloj no válida.");
+			__NOP();
+			break;
+
+
+	}
+
 
 }	//FIn identificarComandos
 
-
+}
 
 void init_hardware(void){
 
@@ -228,7 +337,7 @@ void init_hardware(void){
 	GPIO_Config(&handlerPinRX);
 
 	handlerCommTerminal.ptrUSARTx 						= USART1;
-	handlerCommTerminal.USART_Config.USART_baudrate 	= USART_BAUDRATE_19200;
+	handlerCommTerminal.USART_Config.USART_baudrate 	=  USART_BAUDRATE_100MHz_19200;
 	handlerCommTerminal.USART_Config.USART_datasize 	= USART_DATASIZE_8BIT;
 	handlerCommTerminal.USART_Config.USART_parity 		= USART_PARITY_NONE;
 	handlerCommTerminal.USART_Config.USART_mode 		= USART_MODE_RXTX;
@@ -258,12 +367,53 @@ void init_hardware(void){
 
 	GPIO_Config(&handlerMCO1);
 
+	// Configurar los elementos para el manejo del acelerómetro
+	handlerAccelSCL.pGPIOx		= GPIOB;
+	handlerAccelSCL.GPIO_PinConfig.GPIO_PinNumber	= PIN_8;
+	handlerAccelSCL.GPIO_PinConfig.GPIO_PinMode		= GPIO_MODE_ALTFN;
+	handlerAccelSCL.GPIO_PinConfig.GPIO_PinOPType   = GPIO_OTYPE_OPENDRAIN;
+	handlerAccelSCL.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_PUPDR_NOTHING;
+	handlerAccelSCL.GPIO_PinConfig.GPIO_PinSpeed	= GPIO_OSPEED_FAST;
+	handlerAccelSCL.GPIO_PinConfig.GPIO_PinAltFunMode	= AF4;
+
+	GPIO_Config(&handlerAccelSCL);
+
+	handlerAccelSDA.pGPIOx 								= GPIOB;
+	handlerAccelSDA.GPIO_PinConfig.GPIO_PinNumber		= PIN_9;
+	handlerAccelSDA.GPIO_PinConfig.GPIO_PinMode			= GPIO_MODE_ALTFN;
+	handlerAccelSDA.GPIO_PinConfig.GPIO_PinOPType   	= GPIO_OTYPE_OPENDRAIN;
+	handlerAccelSDA.GPIO_PinConfig.GPIO_PinPuPdControl 	= GPIO_PUPDR_NOTHING;
+	handlerAccelSDA.GPIO_PinConfig.GPIO_PinSpeed		= GPIO_OSPEED_FAST;
+	handlerAccelSDA.GPIO_PinConfig.GPIO_PinAltFunMode	= AF4;
+
+	GPIO_Config(&handlerAccelSDA);
+
+
+	handlerAccel.ptrI2Cx		= I2C1;
+	handlerAccel.modeI2C		= I2C_MODE_FM;
+	handlerAccel.slaveAddress	= ACCEL_ADDRESS;
+	handlerAccel.Clock_Freq		= CLOCK_FREQ_100MHz;
+
+	i2c_config(&handlerAccel);
+
+	ADC_conversion.channel[0] = ADC_CHANNEL_0;
+	ADC_conversion.channel[1] = ADC_CHANNEL_1;
+	ADC_conversion.dataAlignment = ADC_ALIGNMENT_RIGHT;
+	ADC_conversion.samplingPeriod[0] = ADC_SAMPLING_PERIOD_84_CYCLES;
+	ADC_conversion.samplingPeriod[1] = ADC_SAMPLING_PERIOD_84_CYCLES;
+	ADC_conversion.resolution = ADC_RESOLUTION_12_BIT;
+
+	ADC_ConfigMultichannel(&ADC_conversion, 2);
+
+
 }
 
 // Callback para el led de estado
 
 void BasicTimer2_Callback(void){
 	GPIO_TooglePin(&handlerLedOK);
+
+	startSingleADC();
 }
 
 // Callback para la comunicación serial USART1
@@ -276,6 +426,22 @@ void usart1Rx_Callback(void){
 
 //Callback para la transmisión del USART1
 void usart1Tx_Callback(void){
+
+}
+
+//Callback del ADC
+void adcComplete_Callback(void){
+
+	//Guardo los datos de las dos conversiones
+	ADC_data[ADCi] = getADC();
+	ADCi++;
+	if(ADCi > 1){
+		ADCi = 0;
+	}
+
+	ADC_complete = 1;
+
+
 
 }
 

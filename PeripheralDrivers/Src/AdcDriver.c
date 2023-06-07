@@ -11,10 +11,13 @@
 GPIO_Handler_t handlerAdcPin = {0};
 uint16_t	adcRawData = 0;
 
-void adc_Config(ADC_Config_t *adcConfig){
-
+void ADC_ConfigMultichannel (ADC_Config_t *adcConfig, uint8_t numeroDeCanales){
 	/* 1. Configuramos el PinX para que cumpla la función de canal análogo deseado. */
-	configAnalogPin(adcConfig->channel);
+	for(uint8_t i = 0; i < numeroDeCanales; i++){
+
+		configAnalogPin(adcConfig->channel[i]);
+
+	}
 
 	/* 2. Activamos la señal de reloj para el periférico ADC1 (bus APB2)*/
 	RCC->APB2ENR |= RCC_APB2ENR_ADC1EN;
@@ -64,8 +67,9 @@ void adc_Config(ADC_Config_t *adcConfig){
 	}
 
 	/* 4. Configuramos el modo Scan como desactivado */
-	// Se debe poner un 0 en el bit SCAN
-	ADC1->CR1 &= ~ADC_CR1_SCAN;
+	// Se debe activar el modo SCAN para la medición en multicanal
+
+	ADC1->CR1 |= ADC_CR1_SCAN;
 
 	/* 5. Configuramos la alineación de los datos (derecha o izquierda) */
 	if(adcConfig->dataAlignment == ADC_ALIGNMENT_RIGHT){
@@ -85,31 +89,54 @@ void adc_Config(ADC_Config_t *adcConfig){
 	ADC1->CR2 &= ~ ADC_CR2_CONT;
 
 	/* 7. Acá se debería configurar el sampling...*/
-	if(adcConfig->channel <= ADC_CHANNEL_9){
-		//Limpio todas las posiciones del registro
-		ADC1->SMPR2 = 0;
-		// Para estos canales se configura el ADC_SMPR2
-		ADC1->SMPR2 |= ((adcConfig->samplingPeriod) << (3*(adcConfig->channel)));
-	}
-	else if(adcConfig->channel > ADC_CHANNEL_9){
-		//Limpio todas las posiciones del registro
-		ADC1->SMPR1 = 0;
-		//Para estos canales se configura el ADC_SMPR1
-		ADC1->SMPR1 |= ((adcConfig->samplingPeriod) << (3*((adcConfig->channel)-10)));
+	for(uint8_t i = 0; i < numeroDeCanales; i++){
+		if(adcConfig->channel[i] <= ADC_CHANNEL_9){
+			//Limpio todas las posiciones del registro
+			ADC1->SMPR2 = 0;
+			// Para estos canales se configura el ADC_SMPR2
+			ADC1->SMPR2 |= ((adcConfig->samplingPeriod[i]) << (3*(adcConfig->channel[i])));
+		}
+		else if(adcConfig->channel[i] > ADC_CHANNEL_9){
+			//Limpio todas las posiciones del registro
+			ADC1->SMPR1 = 0;
+			//Para estos canales se configura el ADC_SMPR1
+			ADC1->SMPR1 |= ((adcConfig->samplingPeriod[i]) << (3*((adcConfig->channel[i])-10)));
+		}
+
+		else{
+			__NOP();
+		}
 	}
 
-	else{
-		__NOP();
-	}
 
 	/* 8. Configuramos la secuencia y cuantos elementos hay en la secuencia */
-	// Al hacerlo todo 0, estamos seleccionando solo 1 elemento en el conteo de la secuencia
+	// Limpiamos el registro
 	ADC1->SQR1 = 0;
+	ADC1->SQR2 = 0;
+	ADC1->SQR3 = 0;
 
-	// Asignamos el canal de la conversión a la primera posición en la secuencia
-	ADC1->SQR3 |= (adcConfig->channel << 0);
+	//Configuro los elementos de la secuencia
+	ADC1->SQR1 |= ((numeroDeCanales - 1) << ADC_SQR1_L_Pos);
 
-	/* 9. Configuramos el preescaler del ADC en 2:1 (el mas rápido que se puede tener */
+
+	// Asignamos el orden de la conversión según el orden del arreglo ingresado a la configuración
+	for(uint8_t i = 0; i < numeroDeCanales; i++){
+
+		if(i < 6){
+			ADC1->SQR3 |= (adcConfig->channel[i] << (i * 5));
+		}
+		else if((i >= 6) && (i < 12)){
+			ADC1->SQR2 |= (adcConfig->channel[i] << ((i-6)*5));
+		}
+		else {
+			ADC1->SQR1 |= (adcConfig->channel[i] << ((i-12)*5));
+
+		}
+	}
+
+
+	/* 9. Configuramos el preescaler del ADC en 4:1  */
+	ADC->CCR &= ~(ADC_CCR_ADCPRE);
 	ADC->CCR |= ADC_CCR_ADCPRE_0;
 
 	/* 10. Desactivamos las interrupciones globales */
@@ -131,6 +158,10 @@ void adc_Config(ADC_Config_t *adcConfig){
 
 	/* 13. Activamos las interrupciones globales */
 	__enable_irq();
+
+
+	//Configuramos la conversión mediante eventos controlados por un TIMx
+
 }
 
 /*

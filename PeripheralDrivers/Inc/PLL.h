@@ -17,11 +17,11 @@
 #define CLOCK_SIGNAL_HSI			4
 #define CLOCK_SIGNAL_LSE			5
 
-#define MCO1_NOPRESCALER			6
-#define MCO1_PRESCALERX2			7
-#define MCO1_PRESCALERX3			8
-#define MCO1_PRESCALERX4			9
-#define MCO1_PRESCALERX5			10
+#define MCO1_NOPRESCALER			1
+#define MCO1_PRESCALERX2			2
+#define MCO1_PRESCALERX3			3
+#define MCO1_PRESCALERX4			4
+#define MCO1_PRESCALERX5			5
 
 
 //Función que configura la velocidad del micro a 80MHz

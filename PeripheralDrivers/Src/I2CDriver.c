@@ -8,7 +8,9 @@
 
 #include <stdint.h>
 #include "I2CDriver.h"
-uint16_t* auxDataAccel;
+
+uint16_t auxDataAccel = 0;
+uint16_t* ptrauxDataAccel = &auxDataAccel;
 
 
 void i2c_config(I2C_Handler_t *ptrHandlerI2C){
@@ -42,6 +44,13 @@ void i2c_config(I2C_Handler_t *ptrHandlerI2C){
 	else if(ptrHandlerI2C->Clock_Freq == CLOCK_FREQ_80MHz){
 		ptrHandlerI2C->ptrI2Cx->CR2 |= (MAIN_CLOCK_40MHz_FOR_I2C << I2C_CR2_FREQ_Pos);
 	}
+	else if(ptrHandlerI2C->Clock_Freq == CLOCK_FREQ_100MHz){
+		ptrHandlerI2C->ptrI2Cx->CR2 |= (MAIN_CLOCK_50MHz_FOR_I2C << I2C_CR2_FREQ_Pos);
+
+	}
+	else{
+		__NOP();
+	}
 
 
 	/*
@@ -72,6 +81,13 @@ void i2c_config(I2C_Handler_t *ptrHandlerI2C){
 			ptrHandlerI2C->ptrI2Cx->TRISE |= I2C_80MHZ_MAX_RISE_TIME_SM;
 		}
 
+		else if(ptrHandlerI2C->Clock_Freq == CLOCK_FREQ_100MHz){
+			//Configuramos la señal de relojc cuando el MCU está a 100 MHz
+			ptrHandlerI2C->ptrI2Cx->CCR |= (I2C_MODE_SM_100MHz_SPEED_100KHz << I2C_CCR_CCR_Pos);
+			//Configuramos el TRISE cuando el MCU está a 100 MHz
+			ptrHandlerI2C->ptrI2Cx->TRISE |= (I2C_100MHZ_MAX_RISE_TIME_SM);
+		}
+
 	}
 	else{
 		//Configuramos el modo fast
@@ -90,6 +106,13 @@ void i2c_config(I2C_Handler_t *ptrHandlerI2C){
 			ptrHandlerI2C->ptrI2Cx->CCR |= (I2C_MODE_FM_80MHZ_SPEED_400KHz << I2C_CCR_CCR_Pos);
 			//Configuramos el TRISE cuando el MCU está a 80MHz
 			ptrHandlerI2C->ptrI2Cx->TRISE |= I2C_80MHZ_MAX_RISE_TIME_FM;
+		}
+
+		else if(ptrHandlerI2C->Clock_Freq == CLOCK_FREQ_100MHz){
+			//Configuramos la señal de reloj cuando el MCU está a 100 MHz
+			ptrHandlerI2C->ptrI2Cx->CCR |= (I2C_MODE_FM_100MHz_SPEED_400KHz << I2C_CCR_CCR_Pos);
+			//Configuramos el TRISE cuando el MCU está a 100 MHz
+			ptrHandlerI2C->ptrI2Cx->TRISE |= I2C_100MHZ_MAX_RISE_TIME_FM;
 		}
 	}
 
@@ -277,7 +300,7 @@ void i2c_writeSingleRegister(I2C_Handler_t *ptrHandlerI2C, uint8_t regToRead, ui
  *
  */
 
-uint16_t* i2c_readMultipleRegister(I2C_Handler_t *ptrHandlerI2C, uint8_t regToRead, uint8_t regLimit){
+void i2c_readMultipleRegister(I2C_Handler_t *ptrHandlerI2C, uint8_t regToRead, uint8_t regLimit, uint16_t* ptrdatosAccel){
 	uint8_t i = 0;
 	char auxReg[regLimit];
 
@@ -296,40 +319,40 @@ uint16_t* i2c_readMultipleRegister(I2C_Handler_t *ptrHandlerI2C, uint8_t regToRe
 	//5. Enviamos la dirección del esclavo y la indicación de leer
 	i2c_sendSlaveAddressRW(ptrHandlerI2C, ptrHandlerI2C->slaveAddress, I2C_READ_DATA);
 
+	//7. Habilitar ACK
+	i2c_sendAck(ptrHandlerI2C);
+
 	while(i < regLimit){
 
-		//6. Leemos el dato que envía el esclavo
+
+		//6. Leemos el dato que envía el esclavo.
+		//Al haber habilitado el ACK, al leer el dato, el maestro envía un ACK y se continúa con la lectura de otro registro.
 		*(auxReg + i) = i2c_readDataByte(ptrHandlerI2C);
 
-		if(i == (regLimit - 1)){
 
+		if(i == (regLimit - 2)){
+			//Al leer el penúltimo dato, debo generar la condición de NACK y Stop para que se lea el último dato y se detenga
 			//8. Generamos la condición de NoACK, para que el master no responda y el slave solo envie 1 byte
 			i2c_sendNoAck(ptrHandlerI2C);
-		}
-		else{
+			// Generamos la condición de STOP
+			i2c_stopTransaction(ptrHandlerI2C);
 
-			//7. Enviar ACK
-			i2c_sendAck(ptrHandlerI2C);
 		}
 		i++;
 	}
-
-	//9. Generamos la condición de Stop, para que el slave se detenga después de 1 byte
-	i2c_stopTransaction(ptrHandlerI2C);
 
 
 	//Sólo para la toma de datos del acelerómetro:
 
 	//Datos en X = XOUT_HIGH << 8 | XOUT_LOW
-	*(auxDataAccel) = (*(auxReg) << 8) | *(auxReg + 1);
+	*(ptrdatosAccel) = (auxReg[0] << 8) | auxReg[1];
 
 	//Datos en Y = YOUT_HIGH << 8 | XOUT_LOW
-	*(auxDataAccel + 1) = (*(auxReg + 2) << 8) | *(auxReg + 3);
+	*(ptrdatosAccel + 1) = auxReg[2] << 8 | auxReg[3];
 
 	//Datos en Z = ZOUT_HIGH << 8 ° ZOUT_LOW
-	*(auxDataAccel + 2) = (*(auxReg + 4) << 8) | *(auxReg + 5);
+	*(ptrdatosAccel + 2) = auxReg[4] << 8 | auxReg[5];
 
-	return auxDataAccel;
 }
 
 

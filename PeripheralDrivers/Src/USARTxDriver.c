@@ -119,6 +119,9 @@ void USART_Config(USART_Handler_t *ptrUsartHandler){
 
 	// 2.5 Configuracion del Baudrate (SFR USART_BRR)
 	// Ver tabla de valores (Tabla 73), Frec = 16MHz, overr = 0;
+	//Limpio el registro;
+	ptrUsartHandler->ptrUSARTx->BRR = 0;
+
 	if(ptrUsartHandler->USART_Config.USART_baudrate == USART_BAUDRATE_9600){
 		// El valor a cargar es 104.1875 -> Mantiza = 104,fraction = 0.1875
 		// Mantiza = 104 = 0x68, fraction = 16 * 0.1875 = 3
@@ -137,7 +140,7 @@ void USART_Config(USART_Handler_t *ptrUsartHandler){
 	else if(ptrUsartHandler->USART_Config.USART_baudrate == USART_BAUDRATE_115200){
 		// El valor a cargar es 8.6875 -> Mantiza = 8, fraction = 0.6875
 		// Mantiza = 8 = 0x8, fraction = 16*0.6875 = 11 = B
-		// Valor a cargar 0x8A
+		// Valor a cargar 0x8B
 		ptrUsartHandler->ptrUSARTx->BRR = 0x8B;
 	}
 
@@ -161,6 +164,29 @@ void USART_Config(USART_Handler_t *ptrUsartHandler){
 		//Mantiza = 43 = 0x2B, fraction = 16*0.40277 = 6 = 0x6
 		//Valor a cargar = 0x02B6
 		ptrUsartHandler->ptrUSARTx->BRR = 0x02B6;
+	}
+
+	//Configuración de los valores de BRR si el micro se encuentra a Frec = 100 MHz, overr = 0
+	else if(ptrUsartHandler->USART_Config.USART_baudrate == USART_BAUDRATE_100MHz_9600){
+		//El valor a cargar es 651.041667 -> Mantiza = 651, Fraction = 0.041667
+		//Mantiza = 651 = 0x28B, fraction = 16*0.041667 = 0.666 = 0x0
+		//Valor a cargar 0x28B0
+		ptrUsartHandler->ptrUSARTx->BRR = 0x28B0;
+	}
+	else if(ptrUsartHandler->USART_Config.USART_baudrate == USART_BAUDRATE_100MHz_19200){
+		//Valor a cargar 325.520833 -> Mantiza = 325, Fraction = 0.520833
+		//Mantiza = 325 = 0x145, Fraction = 16*0.520833 = 8 = 0x8
+		//Valor a cargar 0x1458
+		ptrUsartHandler->ptrUSARTx->BRR = 0x1458;
+	}
+	else if(ptrUsartHandler->USART_Config.USART_baudrate == USART_BAUDRATE_100MHz_115200){
+		//Valor a cargar 54.2534722 -> Mantiza = 54, Fraction = 0.2534722
+		//Mantiza = 54 = 0x36, Fraction = 16*0.2534722 = 4 = 0x4
+		//Valor a cargar 0x364
+		ptrUsartHandler->ptrUSARTx->BRR = 0x364;
+	}
+	else{
+		__NOP();
 	}
 
 	// 2.6 Configuramos el modo: TX only, RX only, RXTX, disable
