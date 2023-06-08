@@ -45,12 +45,12 @@ unsigned int firstParameter = 0;
 unsigned int secondParameter = 0;
 char userMsg[100];
 
-// Elementos para la conversión analogo digital
-ADC_Config_t ADC_conversion = {0};
-uint16_t ADC_data[2] = {0};
-uint8_t ADC_complete = 0;
-BasicTimer_Handler_t handlerTIM5 = {0};
-uint8_t ADCi = 0;
+//// Elementos para la conversión analogo digital
+//ADC_Config_t ADC_conversion = {0};
+//uint16_t ADC_data[2] = {0};
+//uint8_t ADC_complete = 0;
+//uint8_t ADCi = 0;
+////PWM_Handler_t handlerTimerADC = {0};
 
 
 // Elementos para el MOC1
@@ -61,6 +61,13 @@ GPIO_Handler_t handlerAccelSDA = {0};
 GPIO_Handler_t handlerAccelSCL = {0};
 I2C_Handler_t handlerAccel = {0};
 uint16_t ptrdatosAcelerometro[3] = {0};
+
+//// Ensayos ADC unicanal
+//BasicTimer_Handler_t handlerTIM5 = {0};
+//ADC_Config_t_uni chanel0 = {0};
+//uint16_t datosADC_prueba = 0;
+
+
 
 #define ACCEL_ADDRESS		0b1101001
 #define ACCEL_XOUT_H	59
@@ -90,20 +97,18 @@ int main(void){
 	init_acelerometro();
 	writeMsg(&handlerCommTerminal, "\nSistema inicializado con exito\n");
 
-//	configMCO1(CLOCK_SIGNAL_PLL, MCO1_PRESCALERX5);
-
 	i2c_readMultipleRegister(&handlerAccel, ACCEL_XOUT_H, 6, ptrdatosAcelerometro);
 
 
 	while(1){
 
-		if(ADC_complete == 1){
-			sprintf(bufferData, "Data canal 1: %u\n", ADC_data[0]);
-			writeMsg(&handlerCommTerminal, bufferData);
-			sprintf(bufferData, "\nData canal 2: %u\n", ADC_data[1]);
-			writeMsg(&handlerCommTerminal, bufferData);
-			ADC_complete = 0;
-		}
+//		if(ADC_complete == 1){
+//			sprintf(bufferData, "Data canal 1: %u\n", datosADC_prueba);
+//			writeMsg(&handlerCommTerminal, bufferData);
+////			sprintf(bufferData, "\nData canal 2: %u\n", ADC_data[1]);
+////			writeMsg(&handlerCommTerminal, bufferData);
+//			ADC_complete = 0;
+//		}
 
 
 
@@ -397,15 +402,41 @@ void init_hardware(void){
 
 	i2c_config(&handlerAccel);
 
-	ADC_conversion.channel[0] = ADC_CHANNEL_0;
-	ADC_conversion.channel[1] = ADC_CHANNEL_1;
-	ADC_conversion.dataAlignment = ADC_ALIGNMENT_RIGHT;
-	ADC_conversion.samplingPeriod[0] = ADC_SAMPLING_PERIOD_84_CYCLES;
-	ADC_conversion.samplingPeriod[1] = ADC_SAMPLING_PERIOD_84_CYCLES;
-	ADC_conversion.resolution = ADC_RESOLUTION_12_BIT;
+//	ADC_conversion.channel[0] = ADC_CHANNEL_0;
+//	ADC_conversion.channel[1] = ADC_CHANNEL_1;
+//	ADC_conversion.dataAlignment = ADC_ALIGNMENT_RIGHT;
+//	ADC_conversion.samplingPeriod[0] = ADC_SAMPLING_PERIOD_84_CYCLES;
+//	ADC_conversion.samplingPeriod[1] = ADC_SAMPLING_PERIOD_84_CYCLES;
+//	ADC_conversion.resolution = ADC_RESOLUTION_12_BIT;
+//	ADC_conversion.EXT_edge = ADC_EDGETYPE_RISING;
+//	ADC_conversion.EXT_sel = ADC_EXTSEL_TIM5_CH3;
+//
+//	ADC_ConfigMultichannel(&ADC_conversion, 2);
+//
+//	handlerTimerADC.ptrTIMx					= TIM5;
+//	handlerTimerADC.config.channel			= PWM_CHANNEL_3;
+//	handlerTimerADC.config.prescaler		= BTIMER_SPEED_500us_100MHz;
+//	handlerTimerADC.config.periodo			= 100;
+//	handlerTimerADC.config.duttyCicle		= 50;
+//
+//	pwm_Config(&handlerTimerADC);
+//	startPwmSignal(&handlerTimerADC);
+//	enableOutput(&handlerTimerADC);
 
-	ADC_ConfigMultichannel(&ADC_conversion, 2);
-
+//	handlerTIM5.ptrTIMx  								= TIM5;
+//	handlerTIM5.TIMx_Config.TIMx_mode 					= BTIMER_MODE_UP;
+//	handlerTIM5.TIMx_Config.TIMx_speed 					= BTIMER_SPEED_500us_100MHz;
+//	handlerTIM5.TIMx_Config.TIMx_period 				= 100;
+//	handlerTIM5.TIMx_Config.TIMx_interruptEnable 		= BTIMER_INTERRUPT_ENABLE;
+//
+//	BasicTimer_Config(&handlerTIM5);
+//
+//	chanel0.channel = ADC_CHANNEL_0;
+//	chanel0.dataAlignment = ADC_ALIGNMENT_RIGHT;
+//	chanel0.samplingPeriod = ADC_SAMPLING_PERIOD_84_CYCLES;
+//	chanel0.resolution = ADC_RESOLUTION_12_BIT;
+//
+//	adc_Config(&chanel0);
 
 }
 
@@ -414,8 +445,13 @@ void init_hardware(void){
 void BasicTimer2_Callback(void){
 	GPIO_TooglePin(&handlerLedOK);
 
-	startSingleADC();
+
 }
+//
+//void BasicTimer5_Callback(void){
+//	startSingleADC();
+//
+//}
 
 // Callback para la comunicación serial USART1
 
@@ -431,18 +467,18 @@ void usart1Tx_Callback(void){
 }
 
 //Callback del ADC
-void adcComplete_Callback(void){
-
-	//Guardo los datos de las dos conversiones
-	ADC_data[ADCi] = getADC();
-	ADCi++;
-	if(ADCi > 1){
-		ADCi = 0;
-	}
-
-	ADC_complete = 1;
-
-
-
-}
+//void adcComplete_Callback(void){
+//
+////	//Guardo los datos de las dos conversiones
+////	ADC_data[ADCi] = getADC();
+////	ADCi++;
+////	if(ADCi > 1){
+////		ADCi = 0;
+////	}
+//	datosADC_prueba = getADC();
+//	ADC_complete = 1;
+//
+//
+//
+//}
 
