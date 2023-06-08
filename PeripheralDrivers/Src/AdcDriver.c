@@ -134,6 +134,8 @@ void ADC_ConfigMultichannel (ADC_Config_t *adcConfig, uint8_t numeroDeCanales){
 
 		}
 	}
+	//Configurar el End Of conversion selection
+	ADC1->CR2 |= ADC_CR2_EOCS;
 
 
 	/* 9. Configuramos el preescaler del ADC en 4:1  */

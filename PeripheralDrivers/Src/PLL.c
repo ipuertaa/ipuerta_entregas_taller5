@@ -295,3 +295,77 @@ void configMCO1(uint8_t clockSignal, uint8_t prescaler){
 
 }	//Fin configMCO1
 
+void config_clock_MCO1(uint8_t clockSignal){
+	//Limpiar los bits de configuración del MCO1
+	RCC->CFGR &= ~(RCC_CFGR_MCO1);
+
+	//Limpiar los bits del prescaler
+	RCC->CFGR &= ~(RCC_CFGR_MCO1PRE);
+
+	if(clockSignal == CLOCK_SIGNAL_PLL){
+
+		//Configurar para que la salida sea la del PLL
+		RCC->CFGR |= (0x3 << RCC_CFGR_MCO1_Pos);
+	}
+	else if(clockSignal == CLOCK_SIGNAL_HSI){
+
+		//Configurar para que la salida sea la del HSI
+		RCC->CFGR &= ~(RCC_CFGR_MCO1);
+	}
+	else if(clockSignal == CLOCK_SIGNAL_LSE){
+
+		//Configurar para que la salida sea la del LSE
+		RCC->CFGR |= (0x1 << RCC_CFGR_MCO1_Pos);
+	}
+	else{
+		__NOP();
+	}
+
+	//Por defecto se deja sin prescaler
+	RCC->CFGR &= ~(RCC_CFGR_MCO1PRE);
+}
+
+void config_prsc_MCO1(uint8_t prescaler){
+	RCC->CFGR &= ~(RCC_CFGR_MCO1PRE);
+	switch(prescaler){
+	case MCO1_NOPRESCALER:{
+		// No se divide. Se dejan los bits en cero
+		RCC->CFGR &= ~(RCC_CFGR_MCO1PRE);
+		break;
+	}
+	case MCO1_PRESCALERX2:{
+
+
+		//Escribir un 100 = 0x4 en el registro
+		RCC->CFGR |= (0x4 << RCC_CFGR_MCO1PRE_Pos);
+		break;
+	}
+	case MCO1_PRESCALERX3:{
+
+		//Escribir un 101 = 0x5  en el registro
+		RCC->CFGR |= (0x5 << RCC_CFGR_MCO1PRE_Pos);
+		break;
+	}
+	case MCO1_PRESCALERX4:{
+
+		//Escribir un 110 = 0x6  en el registro
+		RCC->CFGR |= (0b110 << RCC_CFGR_MCO1PRE_Pos);
+		break;
+	}
+	case MCO1_PRESCALERX5:{
+
+		//Escribir un 111 = 0x7 en el registro
+		RCC->CFGR |= (0b111 << RCC_CFGR_MCO1PRE_Pos);
+		break;
+	}
+	default:{
+		// No se divide. Se dejan los bits en cero
+		RCC->CFGR &= ~(RCC_CFGR_MCO1PRE);
+		__NOP();
+		break;
+	}
+
+	}	//Fin prescaler
+
+}
+

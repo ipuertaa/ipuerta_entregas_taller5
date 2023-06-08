@@ -15,13 +15,13 @@
  * hasta que se interrumpa la alimentación del microcontrolador
  */
 
-#define LUNES				0
-#define MARTES				1
-#define MIERCOLES			2
-#define JUEVES				3
-#define VIERNES				4
-#define SABADO				5
-#define DOMINGO				6
+#define LUNES				1
+#define MARTES				2
+#define MIERCOLES			3
+#define JUEVES				4
+#define VIERNES				5
+#define SABADO				6
+#define DOMINGO				7
 
 
 #define ENERO				0
@@ -57,5 +57,12 @@ typedef struct{
 } RTC_Handler_t;
 
 void configRTC (RTC_Handler_t *ptrRTC_Handler);
+void dividirValor(uint8_t valor);
+uint8_t horasRTC(void);
+uint8_t minutosRTC(void);
+uint8_t segundosRTC(void);
+uint8_t AM_PM_RTC(void);
+uint8_t formatoHoraRTC(void);
+
 
 #endif /* RTC_DRIVER_H_ */

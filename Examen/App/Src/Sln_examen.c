@@ -45,12 +45,17 @@ unsigned int firstParameter = 0;
 unsigned int secondParameter = 0;
 char userMsg[100];
 
-//// Elementos para la conversión analogo digital
-//ADC_Config_t ADC_conversion = {0};
-//uint16_t ADC_data[2] = {0};
-//uint8_t ADC_complete = 0;
-//uint8_t ADCi = 0;
-////PWM_Handler_t handlerTimerADC = {0};
+// Elementos para la conversión analogo digital
+ADC_Config_t ADC_conversion = {0};
+uint16_t ADC_data[2] = {0};
+uint8_t ADC_complete = 0;
+uint16_t ADCi = 0;
+PWM_Handler_t handlerTimerADC = {0};
+uint16_t conversion1[256];
+uint16_t conversion2[256];
+uint8_t indicador = 0;
+uint16_t k = 0;
+uint8_t readyConv = 0;
 
 
 // Elementos para el MOC1
@@ -94,23 +99,13 @@ int main(void){
 	configPLL(PLL_FRECUENCIA_100MHZ);
 	init_hardware();
 	writeMsg(&handlerCommTerminal, "Examen Taller 5 Isabel Puerta Alvarez\n");
-	init_acelerometro();
+//	init_acelerometro();
 	writeMsg(&handlerCommTerminal, "\nSistema inicializado con exito\n");
 
-	i2c_readMultipleRegister(&handlerAccel, ACCEL_XOUT_H, 6, ptrdatosAcelerometro);
+//	i2c_readMultipleRegister(&handlerAccel, ACCEL_XOUT_H, 6, ptrdatosAcelerometro);
 
 
 	while(1){
-
-//		if(ADC_complete == 1){
-//			sprintf(bufferData, "Data canal 1: %u\n", datosADC_prueba);
-//			writeMsg(&handlerCommTerminal, bufferData);
-////			sprintf(bufferData, "\nData canal 2: %u\n", ADC_data[1]);
-////			writeMsg(&handlerCommTerminal, bufferData);
-//			ADC_complete = 0;
-//		}
-
-
 
 		if(rxData != '\0'){
 
@@ -129,11 +124,10 @@ int main(void){
 				// Se detiene el contador
 				counterRx = 0;
 			}
-
 			//Se detiene el almacenamiento
 			rxData = '\0';
-		}	//Fin if rxData != 0
 
+		}	//Fin RxData
 
 		//Se analizan los caracteres obtenidos
 		if(stringRxComplete == 1){
@@ -141,8 +135,25 @@ int main(void){
 			stringRxComplete = 0;
 		}
 
+		if(ADC_complete == 1){
+			writeMsg(&handlerCommTerminal, "Toma de datos finalizada");
+
+			while(k < 256){
+				sprintf(bufferData,"%u %u\n", conversion1[k], conversion2[k]);
+				writeMsg(&handlerCommTerminal, bufferData);
+				k++;
+			}
+			k = 0;
+
+			ADC_complete = 0;
+		}
+
 	}	//Fin while
-}	//Fin main
+
+
+
+
+	}	//Fin main
 
 
 
@@ -232,57 +243,152 @@ void identificarComandos (char *ptrbufferRx){
 	sscanf(ptrbufferRx, "%s %u %u %s" , comando, &firstParameter, &secondParameter, userMsg);
 
 	if(strcmp(comando, "help") == 0){
-		writeMsg(&handlerCommTerminal, "Menú ayuda. Información sobre los comandos:\n");
-		writeMsg(&handlerCommTerminal, "\n1) MCOconfig #A #B Para configurar el MCO1 escribir \n");
-		writeMsg(&handlerCommTerminal, "                   A = 1 -> HSI, A = 2 -> PLL, A = 3 -> LSE\n");
-		writeMsg(&handlerCommTerminal, "                   B = 1, 2, 3, 4, 5 (prescaler)\n");
+		writeMsg(&handlerCommTerminal, "\n               Menú ayuda. Información sobre los comandos:\n");
 
-	}
-	else if(strcmp(comando, "MCOconfig") == 0){
+		writeMsg(&handlerCommTerminal, "\n1) MCO_clock #A        Para configurar la señal de reloj del MCO1 escribir:\n");
+		writeMsg(&handlerCommTerminal, "                         A = 1 -> HSI, A = 2 -> PLL, A = 3 -> LSE\n");
+		writeMsg(&handlerCommTerminal, "                         Precaución, por defecto se configura el HSI\n");
+
+		writeMsg(&handlerCommTerminal, "\n2) MCO_prescaler #B    Para configurar el prescaler de la señal de reloj configurada para el MCO1\n");
+		writeMsg(&handlerCommTerminal, "                         B = 1, 2, 3, 4, 5. (El valor 1 es no prescaler)\n");
+		writeMsg(&handlerCommTerminal, "                         Precaución, por defecto no se hace prescaler a la señal\n");
+
+		writeMsg(&handlerCommTerminal, "\n3) ADC_freq #D.        Para modificar la frecuencia de muestreo de la conversión ADC\n");
+		writeMsg(&handlerCommTerminal, "                         D = 0 -> 8 KHz,  D = 1 -> 15 KHz, D = 2 -> 20 KHz\n");
+		writeMsg(&handlerCommTerminal, "                         Precaución, por defecto la frecuencia es 15 KHz\n");
+
+		writeMsg(&handlerCommTerminal, "\n4) ADC_muestreo #C.    Para activar o desactivar la conversión ADC de 2 canales\n");
+		writeMsg(&handlerCommTerminal, "                         C = 1 -> Activar el muestreo, C = 0 -> Desactiva el muestreo\n");
+		writeMsg(&handlerCommTerminal, "                         Precaución, por defecto el muestreo está desactivado\n");
+
+
+
+	} //Fin comando help
+
+	else if(strcmp(comando, "MCO_clock") == 0){
 		switch (firstParameter){
 		case 1:{
-			if((secondParameter <= 5) && (secondParameter != 0)){
-				configMCO1(CLOCK_SIGNAL_HSI, (uint8_t)secondParameter);
-				writeMsg(&handlerCommTerminal, "\nConfiguración exitosa del MCO1 como salida del HSI");
-			}
-			else{
-				writeMsg(&handlerCommTerminal, "\nValor de prescaler no permitido");
-			}
+			config_clock_MCO1(CLOCK_SIGNAL_HSI);
+			writeMsg(&handlerCommTerminal, "\nConfiguración exitosa del MCO1 como salida del HSI\n");
 		break;
 		}
 
 		case 2:{
-			if((secondParameter <= 5) && (secondParameter != 0)){
-				configMCO1(CLOCK_SIGNAL_PLL, (uint8_t)secondParameter);
-				writeMsg(&handlerCommTerminal, "\nConfiguración exitosa del MCO1 como salida del PLL");
-			}
-			else{
-				writeMsg(&handlerCommTerminal, "\nValor de prescaler no permitido");
-			}
+			config_clock_MCO1(CLOCK_SIGNAL_PLL);
+			writeMsg(&handlerCommTerminal, "\nConfiguración exitosa del MCO1 como salida del PLL\n");
+
 		break;
 		}
 		case 3:{
-			if((secondParameter <= 5) && (secondParameter != 0)){
-				configMCO1(CLOCK_SIGNAL_LSE, (uint8_t)secondParameter);
-				writeMsg(&handlerCommTerminal, "\nConfiguración exitosa del MCO1 como salida del LSE");
-			}
-			else{
-				writeMsg(&handlerCommTerminal, "\nValor de prescaler no permitido");
-			}
+			config_clock_MCO1(CLOCK_SIGNAL_LSE);
+			writeMsg(&handlerCommTerminal, "\nConfiguración exitosa del MCO1 como salida del LSE\n");
+
 		break;
 		}
 		default:
-			writeMsg(&handlerCommTerminal, "\nConfiguración de salida de reloj no válida.");
+			writeMsg(&handlerCommTerminal, "\nConfiguración de salida de reloj no válida. Se configura reloj por defecto. Ir a 'help' para mas información\n");
+			config_clock_MCO1(CLOCK_SIGNAL_HSI);
 			__NOP();
 			break;
-
-
 	}
+}	//Fin comando MCO_clock
+
+	else if(strcmp(comando, "MCO_prescaler") == 0){
+		switch (firstParameter){
+		case 1:{
+			config_prsc_MCO1(MCO1_NOPRESCALER);
+			writeMsg(&handlerCommTerminal, "\nHa configurado la señal sin prescaler");
+		break;
+		}
+
+		case 2:{
+			config_prsc_MCO1(MCO1_PRESCALERX2);
+			writeMsg(&handlerCommTerminal, "\nHa configurado la señal con prescaler x2");
+
+		break;
+		}
+		case 3:{
+			config_prsc_MCO1(MCO1_PRESCALERX3);
+			writeMsg(&handlerCommTerminal, "\nHa configurado la señal con prescaler x3");
+
+		break;
+		}
+		case 4:{
+			config_prsc_MCO1(MCO1_PRESCALERX4);
+			writeMsg(&handlerCommTerminal, "\nHa configurado la señal con prescaler x4");
+			break;
+		}
+		case 5:{
+			config_prsc_MCO1(MCO1_PRESCALERX5);
+			writeMsg(&handlerCommTerminal, "\nHa configurado la señal con prescaler x5");
+			break;
+		}
+		default:
+			writeMsg(&handlerCommTerminal, "\nValor de prescaler no válido. Se configura prescaler por defecto. Ir a 'help' para más información\n");
+			config_prsc_MCO1(MCO1_NOPRESCALER);
+			__NOP();
+			break;
+	}
+}	//Fin comando MCO_prescaler
 
 
-}	//FIn identificarComandos
+	else if(strcmp(comando, "ADC_freq") == 0){
+		switch (firstParameter){
+		case 0:{
+			handlerTimerADC.config.periodo			= 125;	//Frecuencia de muestreo de 8 KHz
+			handlerTimerADC.config.duttyCicle		= 63;	//Dutty del 50%
+			writeMsg(&handlerCommTerminal, "\nFrecuencia de muestreo de 8 KHz\n");
+		break;
+		}
 
-}
+		case 1:{
+			handlerTimerADC.config.periodo			= 66;	//Frecuencia de muestreo de aproximadamente 15 KHz
+			handlerTimerADC.config.duttyCicle		= 33;	//Dutty del 50%
+			writeMsg(&handlerCommTerminal, "\nFrecuencia de muestreo de 15 KHz\n");
+
+		break;
+		}
+		case 2:{
+			handlerTimerADC.config.periodo			= 25;	//Frecuencia de muestreo de 20 KHz
+			handlerTimerADC.config.duttyCicle		= 25;	//Duty del 50%
+			writeMsg(&handlerCommTerminal, "\nFrecuencia de muestreo de 40 KHz\n");
+
+		break;
+		}
+		default:
+			writeMsg(&handlerCommTerminal, "\nConfiguración de frecuencia no válida. Se configura frecuencia por defecto. Ir a 'help' para más información\n");
+			handlerTimerADC.config.periodo			= 66;	//Frecuencia de muestreo de aproximadamente 15 KHz
+			handlerTimerADC.config.duttyCicle		= 33;	//Dutty del 50%
+			__NOP();
+			break;
+	}
+}	//Fin comando ADC_freq
+
+	else if(strcmp(comando, "ADC_muestreo") == 0){
+
+		if(firstParameter == 1){
+			writeMsg(&handlerCommTerminal, "\nIniciando la conversión ADC a dos canales\n");
+			//Activar el PWM para que se genere la conversión
+			startPwmSignal(&handlerTimerADC);
+			enableOutput(&handlerTimerADC);
+		}
+		else if(firstParameter == 0){
+			writeMsg(&handlerCommTerminal, "\nFinalizando la conversión ADC\n");
+			//Desactivar el PWM, por lo que no se genera la conversión
+			disableOutput(&handlerTimerADC);
+			stopPwmSignal(&handlerTimerADC);
+		}
+		else{
+			writeMsg(&handlerCommTerminal, "\nComando erróneo. No se inicia la conversión\n");
+			//Desactivar el PWM, por lo que no se genera la conversión
+			disableOutput(&handlerTimerADC);
+			stopPwmSignal(&handlerTimerADC);
+		}
+	}	//Fin comando ADC_muestreo
+
+
+
+}	//Fin indentificarComandos
 
 void init_hardware(void){
 
@@ -355,12 +461,6 @@ void init_hardware(void){
 
 	//Configuración del pin MOC1
 
-//	//Limpiar los bits correspondientes == Seleccionar HSI como salida
-//	RCC->CFGR &= ~(RCC_CFGR_MCO1);
-//
-//	//Limpiar los bits del prescaler == no escalar
-//	RCC->CFGR &= ~(RCC_CFGR_MCO1PRE);
-
 	//Configurar el pin PA8 con la función alternativa AF0
 
 	handlerMCO1.pGPIOx							= GPIOA;
@@ -402,41 +502,27 @@ void init_hardware(void){
 
 	i2c_config(&handlerAccel);
 
-//	ADC_conversion.channel[0] = ADC_CHANNEL_0;
-//	ADC_conversion.channel[1] = ADC_CHANNEL_1;
-//	ADC_conversion.dataAlignment = ADC_ALIGNMENT_RIGHT;
-//	ADC_conversion.samplingPeriod[0] = ADC_SAMPLING_PERIOD_84_CYCLES;
-//	ADC_conversion.samplingPeriod[1] = ADC_SAMPLING_PERIOD_84_CYCLES;
-//	ADC_conversion.resolution = ADC_RESOLUTION_12_BIT;
-//	ADC_conversion.EXT_edge = ADC_EDGETYPE_RISING;
-//	ADC_conversion.EXT_sel = ADC_EXTSEL_TIM5_CH3;
-//
-//	ADC_ConfigMultichannel(&ADC_conversion, 2);
-//
-//	handlerTimerADC.ptrTIMx					= TIM5;
-//	handlerTimerADC.config.channel			= PWM_CHANNEL_3;
-//	handlerTimerADC.config.prescaler		= BTIMER_SPEED_500us_100MHz;
-//	handlerTimerADC.config.periodo			= 100;
-//	handlerTimerADC.config.duttyCicle		= 50;
-//
-//	pwm_Config(&handlerTimerADC);
+	ADC_conversion.channel[0] = ADC_CHANNEL_0;
+	ADC_conversion.channel[1] = ADC_CHANNEL_1;
+	ADC_conversion.dataAlignment = ADC_ALIGNMENT_RIGHT;
+	ADC_conversion.samplingPeriod[0] = ADC_SAMPLING_PERIOD_112_CYCLES;
+	ADC_conversion.samplingPeriod[1] = ADC_SAMPLING_PERIOD_112_CYCLES;
+	ADC_conversion.resolution = ADC_RESOLUTION_12_BIT;
+	ADC_conversion.EXT_edge = ADC_EDGETYPE_RISING;
+	ADC_conversion.EXT_sel = ADC_EXTSEL_TIM5_CH3;
+
+	ADC_ConfigMultichannel(&ADC_conversion, 2);
+
+	handlerTimerADC.ptrTIMx					= TIM5;
+	handlerTimerADC.config.channel			= PWM_CHANNEL_3;
+	handlerTimerADC.config.prescaler		= 100;	//Doy pasos de 1us
+	handlerTimerADC.config.periodo			= 66;	//Frecuencia de muestreo de aproximadamente 15 KHz
+	handlerTimerADC.config.duttyCicle		= 33;	//Duty del 50%
+
+	pwm_Config(&handlerTimerADC);
 //	startPwmSignal(&handlerTimerADC);
 //	enableOutput(&handlerTimerADC);
 
-//	handlerTIM5.ptrTIMx  								= TIM5;
-//	handlerTIM5.TIMx_Config.TIMx_mode 					= BTIMER_MODE_UP;
-//	handlerTIM5.TIMx_Config.TIMx_speed 					= BTIMER_SPEED_500us_100MHz;
-//	handlerTIM5.TIMx_Config.TIMx_period 				= 100;
-//	handlerTIM5.TIMx_Config.TIMx_interruptEnable 		= BTIMER_INTERRUPT_ENABLE;
-//
-//	BasicTimer_Config(&handlerTIM5);
-//
-//	chanel0.channel = ADC_CHANNEL_0;
-//	chanel0.dataAlignment = ADC_ALIGNMENT_RIGHT;
-//	chanel0.samplingPeriod = ADC_SAMPLING_PERIOD_84_CYCLES;
-//	chanel0.resolution = ADC_RESOLUTION_12_BIT;
-//
-//	adc_Config(&chanel0);
 
 }
 
@@ -447,11 +533,7 @@ void BasicTimer2_Callback(void){
 
 
 }
-//
-//void BasicTimer5_Callback(void){
-//	startSingleADC();
-//
-//}
+
 
 // Callback para la comunicación serial USART1
 
@@ -467,18 +549,36 @@ void usart1Tx_Callback(void){
 }
 
 //Callback del ADC
-//void adcComplete_Callback(void){
-//
-////	//Guardo los datos de las dos conversiones
-////	ADC_data[ADCi] = getADC();
-////	ADCi++;
-////	if(ADCi > 1){
-////		ADCi = 0;
-////	}
-//	datosADC_prueba = getADC();
-//	ADC_complete = 1;
-//
-//
-//
-//}
+void adcComplete_Callback(void){
+
+	if(indicador == 0){
+		conversion1[ADCi] = getADC();
+		indicador = 1;
+	}
+	else{
+		conversion2[ADCi] = getADC();
+		indicador = 0;
+		ADCi++;
+
+	}
+
+	if(ADCi >= 256){
+		ADC_complete = 1;
+		ADCi = 0;
+		disableOutput(&handlerTimerADC);
+		stopPwmSignal(&handlerTimerADC);
+	}
+
+
+//	//Guardo los datos de las dos conversiones
+//	ADC_data[ADCi] = getADC();
+//	ADCi++;
+//	if(ADCi > 1){
+//		ADCi = 0;
+//		ADC_complete = 1;
+//	}
+
+
+
+}
 

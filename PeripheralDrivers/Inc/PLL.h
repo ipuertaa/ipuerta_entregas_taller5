@@ -29,4 +29,7 @@ void configPLL(uint8_t frecuencia);
 uint8_t getConfigPLL(uint8_t PLLP, uint8_t PLLN);
 void configMCO1(uint8_t clockSignal, uint8_t prescaler);
 
+void config_clock_MCO1(uint8_t clockSignal);
+void config_prsc_MCO1(uint8_t prescaler);
+
 #endif /* PLL_H_ */
