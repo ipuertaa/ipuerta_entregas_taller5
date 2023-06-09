@@ -63,6 +63,9 @@ uint8_t minutosRTC(void);
 uint8_t segundosRTC(void);
 uint8_t AM_PM_RTC(void);
 uint8_t formatoHoraRTC(void);
+uint8_t añoRTC(void);
+uint8_t diaRTC(void);
+uint8_t diaSemanaRTC(void);
 
 
 #endif /* RTC_DRIVER_H_ */

@@ -22,27 +22,6 @@ uint8_t unidades = 0;
  * Es un reloj de tiempo real. Garantiza segundos, minutos, horas, dias, meses, años
  *
  *
- * 17.3.5 -> inicialización
- *
- * 1. Quitar la protección en el pwr control
- * 1. El pwr control también es un periférico entonces toca activar la señal de reloj
- * 2. Luego en power controller, en el cr, modificar el bit DBP para quitar la protección
- * 3. Activar lo relacionado al RTC. El RTC se activa en el RCC-BDCR-LSEON, SEÑAL ESTABLE
- * 4. Seleccionar la fuente de reloj en RTCSEL
- * 5. RCTEN en el mismo registro de arriba
- * 6. Ingresar claves en RTC_WPR con un =
- * 7. Activar el bypass de los shadow registers pag 439
- * en erading the calendar
- * 8. Poner modo inicialización ISR_INIT
- * revisar la bandera de modo inicialización
- * 9. Prescaler para que la salida sea de 1hertz, (no es necesario), por defecto ya quedan en 1hertz
- * 10. Configurar el formato: de 12 o 24 horas RTC_CR
- * 11. Luego configurar el time register
- * Función para dividir
- * 12. En el date register. }
- *
- *
- * Funciones para leer:
  *
  */
 
@@ -55,7 +34,7 @@ void configRTC (RTC_Handler_t *ptrRTC_Handler){
 	 */
 
 	//1. Activar la señal de reloj del periférico power control
-	RCC->CR |= RCC_APB1ENR_PWREN;
+	RCC->APB1ENR |= RCC_APB1ENR_PWREN;
 
 	//2. Deshabilitar la protección de escritura
 	PWR->CR |= PWR_CR_DBP;
@@ -294,9 +273,67 @@ uint8_t formatoHoraRTC(void){
 }
 
 //Función para leer el año del RTC
-//uint8_t añoRTC(void){
-//	uint8_t
-//
-//}
+uint8_t añoRTC(void){
+	uint8_t decenasAño = 0;
+	uint8_t unidadesAño = 0;
+	uint8_t año = 0;
 
+	//Leer el registro de las decenas del año
+	decenasAño = ((RTC->DR & RTC_DR_YT) >> RTC_DR_YT_Pos);
+
+	//Leer el registro de las unidades del año
+	unidadesAño = ((RTC->DR & RTC_DR_YU) >> RTC_DR_YU_Pos);
+
+	//Acomodamos las unidades y las decenas para obtener el valor real
+	año = (decenasAño*10) + unidadesAño;
+
+	return año;
+}
+
+//Función para leer el mes del RTC
+uint8_t mesRTC(void){
+	uint8_t decenasMes = 0;
+	uint8_t unidadesMes = 0;
+	uint8_t mes = 0;
+
+	//Leer el registro de las decenas del mes
+	decenasMes = ((RTC->DR & RTC_DR_MT) >> RTC_DR_MT_Pos);
+
+	//Leer el registro de las unidades del mes
+	unidadesMes = ((RTC->DR & RTC_DR_MU) >> RTC_DR_MU_Pos);
+
+	//Acomodamos las unidades y las decenas para obtener el valor real
+	mes = (decenasMes*10) + unidadesMes;
+
+	return mes;
+
+}
+
+//Función para leer el dia de la semana del RTC
+uint8_t diaRTC(void){
+	uint8_t decenasDia = 0;
+	uint8_t unidadesDia = 0;
+	uint8_t dia = 0;
+
+	//Leer el registro de las decenas del dia
+	decenasDia = ((RTC->DR & RTC_DR_DT) >> RTC_DR_DT_Pos);
+
+	//Leer el registro de las unidades del dia
+	unidadesDia = ((RTC->DR & RTC_DR_DU) >> RTC_DR_DU_Pos);
+
+	//Acomodamos las unidades y las decenas para obtener el valor real
+	dia = (decenasDia*10) + unidadesDia;
+
+	return dia;
+}
+
+//Función para leer el día de la semana
+uint8_t diaSemanaRTC(void){
+	uint8_t diaSemana = 0;
+
+	diaSemana = ((RTC->DR & RTC_DR_WDU) >> RTC_DR_WDU_Pos);
+
+	return diaSemana;
+
+}
 

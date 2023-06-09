@@ -23,6 +23,7 @@
 #include "PLL.h"
 #include "AdcDriver.h"
 #include "PwmDriver.h"
+#include "RTC_Driver.h"
 
 
 // Elementos para el led de estado PH1 + TIM2
@@ -67,10 +68,13 @@ GPIO_Handler_t handlerAccelSCL = {0};
 I2C_Handler_t handlerAccel = {0};
 uint16_t ptrdatosAcelerometro[3] = {0};
 
-//// Ensayos ADC unicanal
-//BasicTimer_Handler_t handlerTIM5 = {0};
-//ADC_Config_t_uni chanel0 = {0};
-//uint16_t datosADC_prueba = 0;
+//Elementos para el uso del RTC
+RTC_Handler_t handlerRTC = {0};
+uint8_t hora = 0;
+uint8_t minuto = 0;
+uint8_t segundo = 0;
+
+
 
 
 
@@ -106,6 +110,10 @@ int main(void){
 
 
 	while(1){
+
+		hora = horasRTC();
+		minuto = minutosRTC();
+		segundo = segundosRTC();
 
 		if(rxData != '\0'){
 
@@ -349,8 +357,8 @@ void identificarComandos (char *ptrbufferRx){
 		break;
 		}
 		case 2:{
-			handlerTimerADC.config.periodo			= 25;	//Frecuencia de muestreo de 20 KHz
-			handlerTimerADC.config.duttyCicle		= 25;	//Duty del 50%
+			handlerTimerADC.config.periodo			= 25;	//Frecuencia de muestreo de 40 KHz
+			handlerTimerADC.config.duttyCicle		= 13;	//Duty del 50%
 			writeMsg(&handlerCommTerminal, "\nFrecuencia de muestreo de 40 KHz\n");
 
 		break;
@@ -522,6 +530,18 @@ void init_hardware(void){
 	pwm_Config(&handlerTimerADC);
 //	startPwmSignal(&handlerTimerADC);
 //	enableOutput(&handlerTimerADC);
+
+	handlerRTC.Am_pm = PM;
+	handlerRTC.año = 23;
+	handlerRTC.mes = 6;
+	handlerRTC.dia = 8;
+	handlerRTC.diaSemana = JUEVES;
+	handlerRTC.formatoHora = FORMATO_12HORAS;
+	handlerRTC.hora = 7;
+	handlerRTC.minuto = 25;
+	handlerRTC.segundo = 0;
+
+	configRTC(&handlerRTC);
 
 
 }

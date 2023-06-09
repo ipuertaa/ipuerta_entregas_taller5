@@ -296,6 +296,13 @@ void configMCO1(uint8_t clockSignal, uint8_t prescaler){
 }	//Fin configMCO1
 
 void config_clock_MCO1(uint8_t clockSignal){
+
+	//Apagar el PLL
+	RCC->CR &= ~RCC_CR_PLLON;
+
+	//Apagar el LSE
+	RCC->BDCR &= ~RCC_BDCR_LSEON;
+
 	//Limpiar los bits de configuración del MCO1
 	RCC->CFGR &= ~(RCC_CFGR_MCO1);
 
@@ -323,9 +330,23 @@ void config_clock_MCO1(uint8_t clockSignal){
 
 	//Por defecto se deja sin prescaler
 	RCC->CFGR &= ~(RCC_CFGR_MCO1PRE);
+
+	//Encender el PLL
+	RCC->CR |= RCC_CR_PLLON;
+
+	//Encender el LSE
+	RCC->BDCR |= RCC_BDCR_LSEON;
 }
 
 void config_prsc_MCO1(uint8_t prescaler){
+
+	//Apagar el PLL
+	RCC->CR &= ~RCC_CR_PLLON;
+
+	//Apagar el LSE
+	RCC->BDCR &= ~RCC_BDCR_LSEON;
+
+
 	RCC->CFGR &= ~(RCC_CFGR_MCO1PRE);
 	switch(prescaler){
 	case MCO1_NOPRESCALER:{
@@ -365,7 +386,13 @@ void config_prsc_MCO1(uint8_t prescaler){
 		break;
 	}
 
-	}	//Fin prescaler
+	}
+
+	//Encender el PLL
+	RCC->CR |= RCC_CR_PLLON;
+
+	//Encender el LSE
+	RCC->BDCR |= RCC_BDCR_LSEON;
 
 }
 
