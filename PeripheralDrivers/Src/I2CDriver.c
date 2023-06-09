@@ -7,6 +7,10 @@
 
 
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdbool.h>
 #include "I2CDriver.h"
 
 uint16_t auxDataAccel = 0;
@@ -354,5 +358,6 @@ void i2c_readMultipleRegister(I2C_Handler_t *ptrHandlerI2C, uint8_t regToRead, u
 	*(ptrdatosAccel + 2) = auxReg[4] << 8 | auxReg[5];
 
 }
+
 
 
