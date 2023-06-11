@@ -24,21 +24,21 @@
 #define DOMINGO				7
 
 
-#define ENERO				0
-#define FEBRERO				1
-#define MARZO				2
-#define ABRIL				3
-#define MAYO				4
-#define JUNIO				5
-#define JULIO				6
-#define AGOSTO				7
-#define SEPTIEMBRE			8
-#define OCTUBRE				9
-#define NOVIEMBRE			10
-#define DICIEMBRE			11
+#define ENERO				1
+#define FEBRERO				2
+#define MARZO				3
+#define ABRIL				4
+#define MAYO				5
+#define JUNIO				6
+#define JULIO				7
+#define AGOSTO				8
+#define SEPTIEMBRE			9
+#define OCTUBRE				10
+#define NOVIEMBRE			11
+#define DICIEMBRE			12
 
-#define FORMATO_12HORAS		0
-#define FORMATO_24HORAS		1
+#define FORMATO_12HORAS		1
+#define FORMATO_24HORAS		0
 #define AM					2
 #define PM					3
 
@@ -66,6 +66,7 @@ uint8_t formatoHoraRTC(void);
 uint8_t añoRTC(void);
 uint8_t diaRTC(void);
 uint8_t diaSemanaRTC(void);
+uint8_t mesRTC(void);
 
 
 #endif /* RTC_DRIVER_H_ */

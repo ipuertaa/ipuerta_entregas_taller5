@@ -69,29 +69,16 @@ GPIO_Handler_t handlerAccelSDA = {0};
 GPIO_Handler_t handlerAccelSCL = {0};
 I2C_Handler_t handlerAccel = {0};
 uint16_t ptrdatosAcelerometro[3] = {0};
-uint16_t datosEjeX[1024] = {0};
-uint16_t datosEjeY[1024] = {0};
-uint16_t datosEjeZ[1024] = {0};
+
+//Variables donde se almacenan los datos del acelerómetro
+uint16_t datosEjeX[256] = {0};
+uint16_t datosEjeY[256] = {0};
+uint16_t datosEjeZ[256] = {0};
 uint16_t muestreoAccel = 0;
 uint16_t flagMuestreo = 0;
 BasicTimer_Handler_t handlerTimAccel = {0};
 uint16_t Acceli = 0;
-
-
-float32_t datosX[1024];
-float32_t* ptrdatosX;
-//Elementos para la FFT
-uint8_t FFTon = 0;
-
-uint32_t ifftFlag = 0;
-uint32_t doBitReverse = 1;
-arm_rfft_fast_instance_f32 config_RFFT_fast_f32;
-arm_cfft_radix4_instance_f32 configRadix4_f32;
-arm_status status = ARM_MATH_ARGUMENT_ERROR;
-arm_status statusInitFFT = ARM_MATH_ARGUMENT_ERROR;
-uint16_t fftSize = 1024;
-float32_t stopTime = 0.0;
-float32_t transformedSignal[1024];
+uint8_t datosObtenidos = 0;
 
 
 //Elementos para el uso del RTC
@@ -99,8 +86,23 @@ RTC_Handler_t handlerRTC = {0};
 uint8_t hora = 0;
 uint8_t minuto = 0;
 uint8_t segundo = 0;
+uint8_t dia = 0;
+uint8_t diaSemana = 0;
+uint8_t mes = 0;
+uint8_t año = 0;
+uint8_t formatoHora = 0;
 
-
+//Elementos para la FFT
+arm_rfft_fast_instance_f32 config_rfft_fast_f32;
+arm_cfft_radix4_instance_f32 configRadix4_f32;
+#define INPUT_SIZE 256 //Tamaño del arreglo de datos del acelerómetro 2^N -> N = 8
+#define FFT_SIZE 256
+float32_t FFT_input[INPUT_SIZE];
+float32_t FFT_output[2*FFT_SIZE];
+float32_t magnitud_max = 0.0;
+uint16_t indice_max = 0;
+char bufferFFT[20500];
+float32_t frecuencia_dominante = 0;
 
 
 
@@ -115,7 +117,6 @@ uint8_t segundo = 0;
 #define PWR_MGMT_1 107
 #define WHO_AM_I 117
 #define AFS_SEL	28
-#define GRAVEDAD	9.8
 
 
 //Definición de cabeceras de funciones
@@ -135,9 +136,6 @@ int main(void){
 	//Activar el coprocesador matemático
 	SCB->CPACR |= (0xF << 20);
 
-//	i2c_readMultipleRegister(&handlerAccel, ACCEL_XOUT_H, 6, ptrdatosAcelerometro);
-
-
 	while(1){
 
 		hora = horasRTC();
@@ -145,7 +143,6 @@ int main(void){
 		segundo = segundosRTC();
 
 		if(rxData != '\0'){
-
 
 			//Se comienza a almacenar la cadena de caracteres recibida
 			bufferRx[counterRx] = rxData;
@@ -173,10 +170,10 @@ int main(void){
 		}
 
 		if(ADC_complete == 1){
-			writeMsg(&handlerCommTerminal, "Toma de datos finalizada");
-
+			writeMsg(&handlerCommTerminal, "\nToma de datos finalizada\n");
+			writeMsg(&handlerCommTerminal, "\nCanal 0  Canal 1\n");
 			while(k < 256){
-				sprintf(bufferData,"%u %u\n", conversion1[k], conversion2[k]);
+				sprintf(bufferData,"%u         %u\n", conversion1[k], conversion2[k]);
 				writeMsg(&handlerCommTerminal, bufferData);
 				k++;
 			}
@@ -186,118 +183,26 @@ int main(void){
 		}
 
 		while(flagMuestreo == 1){
-			muestreoAccel = 0;
 			if(muestreoAccel == 1){
 				i2c_readMultipleRegister(&handlerAccel, ACCEL_XOUT_H, 6, ptrdatosAcelerometro);
-				datosEjeX[Acceli] = *(ptrdatosAcelerometro);
+				datosEjeZ[Acceli] = *(ptrdatosAcelerometro);
 				datosEjeY[Acceli] = *(ptrdatosAcelerometro + 1);
-				datosEjeZ[Acceli] = *(ptrdatosAcelerometro + 2);
+				datosEjeX[Acceli] = *(ptrdatosAcelerometro + 2);
 
-				//Hacer un casteo
-				datosX[Acceli] = (float32_t)datosEjeX[Acceli];
 				Acceli++;
-
-
 			}
-			if(Acceli > 100){
+			if(Acceli == 256){
 				flagMuestreo = 0;
 				writeMsg(&handlerCommTerminal, "\nFinalizado el muestreo de datos del acelerómetro\n");
+				muestreoAccel = 0;
+				datosObtenidos = 1;
+
 			}
 		}	//Fin muestreo datos acelerómetro
 
-		if(FFTon == 1){
-
-			//Se procede a realizar la FFT
-
-			//Se inicializa la FFT
-			statusInitFFT = arm_rfft_fast_init_f32(&config_RFFT_fast_f32, fftSize);
-
-			if(statusInitFFT == ARM_MATH_SUCCESS){
-				sprintf(bufferData, "\nInicialización exitosa\n");
-				writeMsg(&handlerCommTerminal, bufferData);
-			}
-
-			//Se realiza la transformada de fourier
-			stopTime = 0.0;
-			int i = 0;
-			int j = 0;
-
-			sprintf(bufferData, "FFT\n");
-			writeMsg(&handlerCommTerminal, bufferData);
-
-			if(statusInitFFT == ARM_MATH_SUCCESS){
-
-				//Se procede a calcular la FFT
-				arm_rfft_fast_f32(&config_RFFT_fast_f32, datosX, transformedSignal, ifftFlag);
-
-				arm_abs_f32(transformedSignal, datosX, fftSize);
-
-				for(i = 1; i < fftSize; i++){
-					if(i % 2){
-						sprintf(bufferData, "%#.6f\n", 2*datosX[i]);
-						writeMsg(&handlerCommTerminal, bufferData);
-						j++;
-					}
-				}
-			}
-			else{
-				writeMsg(&handlerCommTerminal, "FFT no inicializado");
-			}
-
-			FFTon = 0;
-
-
-		}//Fin FFT
-
-
 	}	//Fin while
 
-
-
-
 	}	//Fin main
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -317,20 +222,16 @@ void init_acelerometro(void){
 	 * Por defecto el accel está en SLEEP, por lo que hay que, hay que hacer
 	 * cero el registro 107 para despertarlo
 	 */
-
+	uint8_t PWR_STATE = i2c_readSingleRegister(&handlerAccel, PWR_MGMT_1);
 	uint8_t SlaveAdress = i2c_readSingleRegister(&handlerAccel, WHO_AM_I);
 	i2c_writeSingleRegister(&handlerAccel, PWR_MGMT_1, 0x00);
-	uint8_t PWR_STATE = i2c_readSingleRegister(&handlerAccel, PWR_MGMT_1);
+	PWR_STATE = i2c_readSingleRegister(&handlerAccel, PWR_MGMT_1);
 
 	if((SlaveAdress == 0x68) && (PWR_STATE == 0x00)){
 		sprintf(bufferData, "\nAcelerometro inicializado\n");
 		writeMsg(&handlerCommTerminal, bufferData);
 	}
-
 }
-
-
-
 
 
 void identificarComandos (char *ptrbufferRx){
@@ -355,16 +256,34 @@ void identificarComandos (char *ptrbufferRx){
 		writeMsg(&handlerCommTerminal, "                         B = 1, 2, 3, 4, 5. (El valor 1 es no prescaler)\n");
 		writeMsg(&handlerCommTerminal, "                         Precaución, por defecto no se hace prescaler a la señal\n");
 
-		writeMsg(&handlerCommTerminal, "\n3) ADC_freq #D.        Para modificar la frecuencia de muestreo de la conversión ADC\n");
-		writeMsg(&handlerCommTerminal, "                         D = 0 -> 8 KHz,  D = 1 -> 15 KHz, D = 2 -> 20 KHz\n");
-		writeMsg(&handlerCommTerminal, "                         Precaución, por defecto la frecuencia es 15 KHz\n");
+		writeMsg(&handlerCommTerminal, "\n3) ADC_freq #C #D      Para modificar la frecuencia de muestreo de la conversión ADC\n");
+		writeMsg(&handlerCommTerminal, "                         C = frecuencia. Rango válido de (8000 - 30000) Hz o (8 - 30) kHz\n");
+		writeMsg(&handlerCommTerminal, "                         D = indica las unidades de la frecuencia. D = 1 -> Hz, D = 2 ->kHz\n");
+		writeMsg(&handlerCommTerminal, "                         Precaución, por defecto la frecuencia es 8000 Hz\n");
 
-		writeMsg(&handlerCommTerminal, "\n4) ADC_muestreo #C.    Para activar o desactivar la conversión ADC de 2 canales\n");
-		writeMsg(&handlerCommTerminal, "                         C = 1 -> Activar el muestreo, C = 0 -> Desactiva el muestreo\n");
+		writeMsg(&handlerCommTerminal, "\n4) ADC_conv #E         Para activar la conversión ADC de 2 canales\n");
+		writeMsg(&handlerCommTerminal, "                         E = 1 -> Activar la conversión\n");
 		writeMsg(&handlerCommTerminal, "                         Precaución, por defecto el muestreo está desactivado\n");
 
+		writeMsg(&handlerCommTerminal, "\n5) Accel_on            Para iniciar la toma de datos del acelerómetro\n");
+		writeMsg(&handlerCommTerminal, "\n6) Datos #F            Presentar los datos del eje seleccionado\n");
+		writeMsg(&handlerCommTerminal, "                         F = 1 -> Eje X, F = 2 -> Eje Y, F = 3, eje Z\n");
+		writeMsg(&handlerCommTerminal, "\n7) FFT_on              Para iniciar la FFT");
 
+		writeMsg(&handlerCommTerminal, "\n8) setFecha #G #H      Configurar la fecha del RTC\n");
+		writeMsg(&handlerCommTerminal, "                         G = día. Rango válido de (1 - 31)\n");
+		writeMsg(&handlerCommTerminal, "                         H = mes. Rango válido de (1 - 12)\n");
 
+		writeMsg(&handlerCommTerminal, "\n9) getFecha            Obtener la fecha dada por el RTC\n");
+
+		writeMsg(&handlerCommTerminal, "\n10) setFormatoHora #I  Configurar el formato de la hora del RTC\n");
+		writeMsg(&handlerCommTerminal, "                         I = 0 -> Formato 24h. I = 1 -> Formato 12h\n");
+
+		writeMsg(&handlerCommTerminal, "\n11) setHora #J #K      Configurar la hora del RTC\n");
+		writeMsg(&handlerCommTerminal, "                         J = hora. Rango válido de (0 - 23) o (1 - 12) dependiendo del formato\n");
+		writeMsg(&handlerCommTerminal, "                         K = minuto. Rango válido de (0 - 60)\n");
+
+		writeMsg(&handlerCommTerminal, "\n12) getHora            Obtener la hora dada por el RTC\n");
 	} //Fin comando help
 
 	else if(strcmp(comando, "MCO_clock") == 0){
@@ -435,38 +354,69 @@ void identificarComandos (char *ptrbufferRx){
 
 
 	else if(strcmp(comando, "ADC_freq") == 0){
-		switch (firstParameter){
-		case 0:{
-			handlerTimerADC.config.periodo			= 125;	//Frecuencia de muestreo de 8 KHz
-			handlerTimerADC.config.duttyCicle		= 63;	//Dutty del 50%
-			writeMsg(&handlerCommTerminal, "\nFrecuencia de muestreo de 8 KHz\n");
-		break;
-		}
 
-		case 1:{
-			handlerTimerADC.config.periodo			= 66;	//Frecuencia de muestreo de aproximadamente 15 KHz
-			handlerTimerADC.config.duttyCicle		= 33;	//Dutty del 50%
-			writeMsg(&handlerCommTerminal, "\nFrecuencia de muestreo de 15 KHz\n");
+		uint16_t frecuenciaHz = 0;
+		uint8_t periodous = 0;
+		uint8_t frecuenciaOk = 0;
+		//Identificar si está ingresada en Hz o en KHz
+		if(secondParameter == 1){
+			if((firstParameter > 30000) || (firstParameter < 8000)){
+				writeMsg(&handlerCommTerminal, "\nFrecuencia de muestreo fuera de rango. Se configura frecuencia por defecto\n");
+				//Configurar la frecuencia
+				handlerTimerADC.config.periodo 		= 125;
+				handlerTimerADC.config.duttyCicle 	= 62;
+				pwm_Config(&handlerTimerADC);
+			}
+			else{
+				//Frecuencia ingresada en Hz
+				frecuenciaHz = firstParameter;
+				frecuenciaOk = 1;
+			}
 
-		break;
 		}
-		case 2:{
-			handlerTimerADC.config.periodo			= 25;	//Frecuencia de muestreo de 40 KHz
-			handlerTimerADC.config.duttyCicle		= 13;	//Duty del 50%
-			writeMsg(&handlerCommTerminal, "\nFrecuencia de muestreo de 40 KHz\n");
+		else if(secondParameter == 2){
 
-		break;
+			if((firstParameter > 30) || (firstParameter < 8)){
+				writeMsg(&handlerCommTerminal, "\nFrecuencia de muestreo fuera de rango. Se configura frecuencia por defecto\n");
+				//Configurar la frecuencia
+				handlerTimerADC.config.periodo 		= 125;
+				handlerTimerADC.config.duttyCicle 	= 62;
+				pwm_Config(&handlerTimerADC);
+
+			}
+			else{
+				//Frecuencia ingresada en Hz
+				frecuenciaHz = 1000*firstParameter;
+				frecuenciaOk = 1;
+			}
 		}
-		default:
-			writeMsg(&handlerCommTerminal, "\nConfiguración de frecuencia no válida. Se configura frecuencia por defecto. Ir a 'help' para más información\n");
-			handlerTimerADC.config.periodo			= 66;	//Frecuencia de muestreo de aproximadamente 15 KHz
-			handlerTimerADC.config.duttyCicle		= 33;	//Dutty del 50%
-			__NOP();
-			break;
-	}
+		else{
+			writeMsg(&handlerCommTerminal, "\nEscala de frecuencia no válida. Se configura frecuencia por defecto\n");
+			//Configurar la frecuencia
+			handlerTimerADC.config.periodo 		= 125;
+			handlerTimerADC.config.duttyCicle 	= 62;
+			pwm_Config(&handlerTimerADC);
+
+		}
+		if(frecuenciaOk == 1){
+			//Convertir la frecuencia en Hz a periodo en us
+			periodous = (1000000/frecuenciaHz);
+			uint8_t dutty = periodous/2;
+
+			//Configurar la frecuencia
+			handlerTimerADC.config.periodo 		= periodous;
+			handlerTimerADC.config.duttyCicle 	= dutty;
+			pwm_Config(&handlerTimerADC);
+
+			frecuenciaOk = 0;
+			sprintf(bufferData, "\nFrecuencia de muestreo %u Hz Periodo %u us Dutty %u\n", frecuenciaHz, periodous, dutty);
+			writeMsg(&handlerCommTerminal, bufferData);
+
+		}
 }	//Fin comando ADC_freq
 
-	else if(strcmp(comando, "ADC_muestreo") == 0){
+
+	else if(strcmp(comando, "ADC_conv") == 0){
 
 		if(firstParameter == 1){
 			writeMsg(&handlerCommTerminal, "\nIniciando la conversión ADC a dos canales\n");
@@ -474,12 +424,7 @@ void identificarComandos (char *ptrbufferRx){
 			startPwmSignal(&handlerTimerADC);
 			enableOutput(&handlerTimerADC);
 		}
-		else if(firstParameter == 0){
-			writeMsg(&handlerCommTerminal, "\nFinalizando la conversión ADC\n");
-			//Desactivar el PWM, por lo que no se genera la conversión
-			disableOutput(&handlerTimerADC);
-			stopPwmSignal(&handlerTimerADC);
-		}
+
 		else{
 			writeMsg(&handlerCommTerminal, "\nComando erróneo. No se inicia la conversión\n");
 			//Desactivar el PWM, por lo que no se genera la conversión
@@ -488,17 +433,195 @@ void identificarComandos (char *ptrbufferRx){
 		}
 	}	//Fin comando ADC_muestreo
 
-	else if(strcmp(comando, "Accel_ON") == 0){
+
+	else if(strcmp(comando, "Accel_on") == 0){
 		writeMsg(&handlerCommTerminal, "\nComenzando captura de datos del acelerómetro\n");
 		flagMuestreo = 1;
 	}
+	else if(strcmp(comando, "Datos") == 0){
+		if(datosObtenidos == 1){
+			if(firstParameter == 1){
+				writeMsg(&handlerCommTerminal, "\nDATOS EJE X\n");
+				for(uint16_t datox = 0; datox < 256; datox++){
+					sprintf(bufferData, "%u %u\n", datox, datosEjeX[datox]);
+					writeMsg(&handlerCommTerminal, bufferData);
+				}
+			}
+			else if(firstParameter == 2){
+				writeMsg(&handlerCommTerminal, "\nDATOS EJE Y\n");
+				for(uint16_t datoy = 0; datoy < 256; datoy++){
+					sprintf(bufferData, "%u %u\n", datoy,datosEjeY[datoy]);
+					writeMsg(&handlerCommTerminal, bufferData);
+				}
+			}
+			else if(firstParameter == 3){
+				writeMsg(&handlerCommTerminal, "\nDATOS EJE Z\n");
+				for(uint16_t datoz = 0; datoz < 256; datoz++){
+					sprintf(bufferData, "%u %u\n", datoz,datosEjeZ[datoz]);
+					writeMsg(&handlerCommTerminal, bufferData);
+				}
+			}
+			else{
+				writeMsg(&handlerCommTerminal, "\nError: eje no válido\n");
+			}
+		}
+		else{
+			writeMsg(&handlerCommTerminal, "\nError: realizar primero la captura de datos del acelerómetro\n");
+		}
+	}	//Fin comando datos
 
 	else if(strcmp(comando, "FFT_on") == 0){
 		writeMsg(&handlerCommTerminal, "\nRealizando transformada rápida de Fourier\n");
-		FFTon = 1;
+		if(datosObtenidos == 1){
+
+			//Inicializar la librería
+			arm_rfft_fast_init_f32(&config_rfft_fast_f32, FFT_SIZE);
+
+			//realizar un casteo de los datos obtenidos en el acelerómetro
+			for(uint16_t i = 0; i < INPUT_SIZE ; i++){
+				FFT_input[i] = (float32_t)datosEjeZ[i];
+			}
+
+			//Ejecutar la FFT
+			arm_rfft_fast_f32(&config_rfft_fast_f32, FFT_input, FFT_output, 0);
+
+			/*
+			 * El buffer de salida contiene datos de la siguiente forma:
+			 * FFT_output = {real[0], ima[0], real[1], imag[0]...]
+			 *
+			 * Para calcular la magnitud de cada par conjugado, se debe calcular
+			 * la raiz cuadrada de real² + imag²
+			 */
+
+			for(uint16_t j = 2; j < FFT_SIZE/2 ; j++){
+
+				if((j % 2)==0){
+					//Graficar el conjunto de datos de salida
+					sprintf(bufferFFT, "%u  %.6f\n", j, fabs(FFT_output[j]));
+					writeMsg(&handlerCommTerminal, bufferFFT);
+
+					//Calcular la magnitud del par conjugado
+					float32_t magnitud = sqrtf((FFT_output[j])*(FFT_output[j])+ (FFT_output[j + 1])*(FFT_output[j + 1]));
+
+
+					//Verificar la frecuencia más alta y en qué índice se encuentra
+					if(magnitud > magnitud_max){
+						magnitud_max = magnitud;
+						indice_max = j;
+					}
+				}
+
+			}
+
+			//Calcular la frecuencia dominante
+			frecuencia_dominante = (indice_max*(2*PI))/((FFT_SIZE/2)*0.005);
+
+			//La sensibilidad corresponde a frecuencia_muestreo / FFT_size = 200/1024
+
+			sprintf(bufferFFT, "Índice %u Frecuencia Dominante %.3f Hz\n", indice_max, frecuencia_dominante);
+			writeMsg(&handlerCommTerminal, bufferFFT);
+		}
+
+		else{
+			writeMsg(&handlerCommTerminal, "\nError: realizar primero la toma de datos\n");
+		}
+	}	//Fin comando ADC_muestreo
+
+
+	else if(strcmp(comando, "setFecha") == 0){
+		if((firstParameter <= 0) || (firstParameter > 31)){
+			writeMsg(&handlerCommTerminal, "\nError: fecha no válida");
+		}
+		else{
+			handlerRTC.dia = firstParameter;
+			if((secondParameter <= 0) || (secondParameter > 12)){
+				writeMsg(&handlerCommTerminal, "\nError: mes no válido");
+			}
+			else {
+				handlerRTC.mes = secondParameter;
+				configRTC(&handlerRTC);
+				writeMsg(&handlerCommTerminal, "\nFecha configurada con éxito\n");
+			}
+		}
+	}	//Fin setFecha
+
+	else if(strcmp(comando, "getFecha") == 0){
+		dia = diaRTC();
+		mes = mesRTC();
+		sprintf(bufferData, "\nDía %u del mes %u", dia, mes);
+		writeMsg(&handlerCommTerminal, bufferData);
 	}
 
+	else if(strcmp(comando, "setFormatoHora") == 0){
+		if(firstParameter == 0){
+			handlerRTC.formatoHora = FORMATO_24HORAS;
+			configRTC(&handlerRTC);
+			writeMsg(&handlerCommTerminal, "\nFormato 24 horas configurado con éxito\n");
+		}
+		else if(firstParameter == 1){
+			handlerRTC.formatoHora = FORMATO_12HORAS;
+			configRTC(&handlerRTC);
+			writeMsg(&handlerCommTerminal, "\nFormato 12 horas configurado con éxito\n");
+		}
+		else{
+			writeMsg(&handlerCommTerminal, "\nError: formato hora no válido\n");
+		}
+	}
 
+	else if(strcmp(comando, "setHora") == 0){
+		formatoHora = formatoHoraRTC();
+
+		if(formatoHora == 0){	//Formato 24 horas
+			if((firstParameter < 0) || (firstParameter > 23)){
+				writeMsg(&handlerCommTerminal, "\nError: hora en formato 24 horas no válida\n");
+			}
+			else{
+				handlerRTC.hora = firstParameter;
+				if((secondParameter < 0) || (firstParameter > 60)){
+					writeMsg(&handlerCommTerminal, "\nError:minuto no válido\n");
+				}
+				else{
+					handlerRTC.minuto = secondParameter;
+					configRTC(&handlerRTC);
+					writeMsg(&handlerCommTerminal, "\nHora configurada con éxito\n");
+				}
+			}
+		}	//Fin formato 24 horas
+		else if(formatoHora == 1){	//Formato 12 horas
+			if((firstParameter <= 0) || (firstParameter > 12)){
+				writeMsg(&handlerCommTerminal, "\nError: hora en formato 12 horas no válida\n");
+			}
+			else{
+				handlerRTC.hora = firstParameter;
+				if((secondParameter < 0) || (firstParameter > 60)){
+					writeMsg(&handlerCommTerminal, "\nError:minuto no válido\n");
+				}
+				else{
+					handlerRTC.minuto = secondParameter;
+					configRTC(&handlerRTC);
+					writeMsg(&handlerCommTerminal, "\nHora configurada con éxito\n");
+				}
+			}
+		}
+	}	//Fin setHora
+
+	else if(strcmp(comando, "getHora") == 0){
+		hora = horasRTC();
+		minuto = minutosRTC();
+		formatoHora = formatoHoraRTC();
+		if(formatoHora == 0){
+			sprintf(bufferData, "\nHora %u (formato 24h) minuto %u", hora, minuto);
+			writeMsg(&handlerCommTerminal, bufferData);
+		}
+		else{
+			sprintf(bufferData, "\nHora %u (formato 12h) minuto %u", hora, minuto);
+			writeMsg(&handlerCommTerminal, bufferData);
+		}
+	}	//Fin getHora
+
+	else{
+		writeMsg(&handlerCommTerminal, "\nComando no válido\n");
+	}
 
 }	//Fin indentificarComandos
 
@@ -623,8 +746,8 @@ void init_hardware(void){
 	handlerTimerADC.ptrTIMx					= TIM5;
 	handlerTimerADC.config.channel			= PWM_CHANNEL_3;
 	handlerTimerADC.config.prescaler		= 100;	//Doy pasos de 1us
-	handlerTimerADC.config.periodo			= 66;	//Frecuencia de muestreo de aproximadamente 15 KHz
-	handlerTimerADC.config.duttyCicle		= 33;	//Duty del 50%
+	handlerTimerADC.config.periodo			= 125;	//Frecuencia de muestreo de 8 KHz
+	handlerTimerADC.config.duttyCicle		= 62;	//Duty del 50%
 
 	pwm_Config(&handlerTimerADC);
 //	startPwmSignal(&handlerTimerADC);
