@@ -15,6 +15,7 @@
 #include "BasicTimer.h"
 #include "ExtiDriver.h"
 #include "USARTxDriver.h"
+#include "SysTickDriver.h"
 
 
 /* 4 pines de propósito general configurados como columnas serán salidas a un nivel alto.
@@ -27,7 +28,13 @@
 uint8_t banderaBarrido = 0;
 uint8_t banderaCondicion = 0;
 uint8_t flagFilas  = 0;
+uint8_t flagMoneda = 0;
+uint16_t dinero = 0;
 
+#define PRECIO_CELDA1  1000
+#define PRECIO_CELDA2  2500
+#define PRECIO_CELDA3  500
+#define PRECIO_CELDA4  3500
 
 char boton = 0;
 
@@ -62,6 +69,17 @@ EXTI_Config_t handlerEXTI3 = {0};		//exti para la fila 3
 EXTI_Config_t handlerEXTI4 = {0};		//exti para la fila 4
 
 
+//Handler para los elementos asociados a la recepción de las monedas
+GPIO_Handler_t handlerRecepMonedas = {0};
+EXTI_Config_t handlerEXTI5_monedas = {0}; 	//PB5
+
+//Elementos para la comunicación serial
+USART_Handler_t handlerUsart2			= {0};
+GPIO_Handler_t handlerPinTX 			= {0};
+GPIO_Handler_t handlerPinRX 			= {0};
+uint8_t usart2DataReceived = 0;
+char bufferMsg[100] = {0};
+
 // Cabeceras de funciones
 
 void init_hardware(void);		//Función para la configuración de pines.
@@ -73,8 +91,18 @@ void identificarF4(void);
 int main(void){
 
 	init_hardware();
+	delay_ms(10);
+	writeMsg(&handlerUsart2, "Bienvenido. Ingrese su dinero");
 
 	while(1){
+
+
+		if(flagMoneda == 1){
+			sprintf(bufferMsg, "\nDinero ingresado = %u $\n", dinero);
+			writeMsg(&handlerUsart2, bufferMsg);
+			flagMoneda = 0;
+
+		}
 
 		if(banderaCondicion == 0){
 			switch(banderaBarrido){
@@ -278,6 +306,50 @@ void init_hardware(void){
 	//Cargar la configuración del exti y GPIO para la F4
 	extInt_Config(&handlerEXTI4);
 
+
+	/*  CONFIGURACIÓN DE LOS ELEMENTOS ASOCIADOS A LA RECEPCIÓN DE LAS MONEDAS */
+
+	handlerRecepMonedas.pGPIOx 									= GPIOB;
+	handlerRecepMonedas.GPIO_PinConfig.GPIO_PinNumber 			= PIN_5;
+	handlerRecepMonedas.GPIO_PinConfig.GPIO_PinMode				= GPIO_MODE_IN;
+	handlerRecepMonedas.GPIO_PinConfig.GPIO_PinSpeed 			= GPIO_OSPEED_FAST;
+	handlerRecepMonedas.GPIO_PinConfig.GPIO_PinPuPdControl 		= GPIO_PUPDR_NOTHING;
+
+	//Configuración del EXTI
+
+	handlerEXTI5_monedas.pGPIOHandler = &handlerRecepMonedas;
+	handlerEXTI5_monedas.edgeType = EXTERNAL_INTERRUPT_RISING_EDGE;
+
+	//Cargar la configuración del exti y GPIO para la F1
+	extInt_Config(&handlerEXTI5_monedas);
+
+	//Configuración de la comunicación serial:
+
+	handlerPinTX.pGPIOx = GPIOA;
+	handlerPinTX.GPIO_PinConfig.GPIO_PinNumber = PIN_2;
+	handlerPinTX.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_ALTFN;
+	handlerPinTX.GPIO_PinConfig.GPIO_PinAltFunMode = AF7;
+	GPIO_Config(&handlerPinTX);
+
+	handlerPinRX.pGPIOx = GPIOA;
+	handlerPinRX.GPIO_PinConfig.GPIO_PinNumber = PIN_3;
+	handlerPinRX.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_ALTFN;
+	handlerPinRX.GPIO_PinConfig.GPIO_PinAltFunMode = AF7;
+	GPIO_Config(&handlerPinRX);
+
+	handlerUsart2.ptrUSARTx 						= USART2;
+	handlerUsart2.USART_Config.USART_baudrate 		= USART_BAUDRATE_19200;
+	handlerUsart2.USART_Config.USART_datasize 		= USART_DATASIZE_8BIT;
+	handlerUsart2.USART_Config.USART_parity 		= USART_PARITY_NONE;
+	handlerUsart2.USART_Config.USART_mode 			= USART_MODE_RXTX;
+	handlerUsart2.USART_Config.USART_stopbits 		= USART_STOPBIT_1;
+	handlerUsart2.USART_Config.USART_enableIntRX 	= USART_RX_INTERRUPT_ENABLE;
+	handlerUsart2.USART_Config.USART_enableIntTX 	= USART_TX_INTERRUPT_ENABLE;
+
+	USART_Config(&handlerUsart2);
+
+	config_SysTick_ms(HSI_CLOCK_CONFIGURED);
+
 }
 
 
@@ -310,6 +382,19 @@ void callback_extInt0(void){	//F4
 void BasicTimer2_Callback(void){
 	GPIO_TooglePin(&handlerLED2);
 }
+
+void callback_extInt5(void){	//Monedas
+	flagMoneda = 1;
+	dinero = dinero + 500;
+
+}
+
+// Función que se ejecuta cada vez que un caracter es recibido
+void usart2Rx_Callback(void){
+	usart2DataReceived = getRxData();
+
+}
+
 
 void identificarF1(void){
 	switch(banderaBarrido){
@@ -406,4 +491,6 @@ void identificarF4(void){
 	}
 	}
 }
+
+
 
