@@ -16,6 +16,11 @@
 #include "ExtiDriver.h"
 #include "USARTxDriver.h"
 #include "SysTickDriver.h"
+#include "OledDriver.h"
+#include "I2CDriver.h"
+
+
+
 
 
 /* 4 pines de propósito general configurados como columnas serán salidas a un nivel alto.
@@ -26,6 +31,7 @@
 //Definición de variables
 
 uint8_t banderaBarrido = 0;
+uint8_t auxbanderaBarrido = 0;
 uint8_t banderaCondicion = 0;
 uint8_t flagFilas  = 0;
 uint8_t flagMoneda = 0;
@@ -35,8 +41,13 @@ uint16_t dinero = 0;
 #define PRECIO_CELDA2  2500
 #define PRECIO_CELDA3  500
 #define PRECIO_CELDA4  3500
+#define oLEDAddress 			0x3C
 
 char boton = 0;
+char casilla[2] = {0};
+uint8_t llenarCasilla = 0;
+uint8_t casillaCompleta = 0;
+uint8_t casilla1OK = 0;
 
 
 
@@ -80,25 +91,99 @@ GPIO_Handler_t handlerPinRX 			= {0};
 uint8_t usart2DataReceived = 0;
 char bufferMsg[100] = {0};
 
+//Elementos para el manejo de la pantalla OLED
+GPIO_Handler_t handlerOledSDA = {0};
+GPIO_Handler_t handlerOledSCL = {0};
+I2C_Handler_t handlerOLED = {0};
+
+char dummyMsg[] = "BIENVENIDO";
+
 // Cabeceras de funciones
 
 void init_hardware(void);		//Función para la configuración de pines.
-void identificarF1(void);
-void identificarF2(void);
-void identificarF3(void);
-void identificarF4(void);
+char identificarF1(void);
+char identificarF2(void);
+char identificarF3(void);
+char identificarF4(void);
+void limpiar_casilla(void);
 
 int main(void){
 
 	init_hardware();
 	delay_ms(10);
-	writeMsg(&handlerUsart2, "Bienvenido. Ingrese su dinero");
+	initOled(&handlerOLED);
+
+//	sprintf(bufferMsg,"   BIENVENIDO    OPRIMA EL BOTON" );
+	OLED_print_msg(&handlerOLED, "   BIENVENIDO    OPRIMA EL BOTON");
+
+
+
+//	delay_ms(50);
+
 
 	while(1){
 
+		if(boton != 0){
+			clearScreenOLED(&handlerOLED);
+			delay_ms(5);
+			sprintf(bufferMsg, "TECLA OPRIMIDA %u", boton);
+			OLED_print_msg(&handlerOLED, bufferMsg);
+
+
+			if(boton == '*'){
+				llenarCasilla = 1;
+				clearScreenOLED(&handlerOLED);
+				sprintf(bufferMsg, "SELECCIONAR POSICION");
+				OLED_print_msg(&handlerOLED, bufferMsg);
+			}
+			if(casillaCompleta == 1){
+
+				if (casilla[0] == 'A') {
+					switch (casilla[1]) {
+					case 1: {
+//						writeMsg(&handlerUsart2, "Ha seccionado la posición A1");
+						OLED_print_msg(&handlerOLED, "CASILLA A1    ");
+						break;
+					}
+					case 2: {
+//						writeMsg(&handlerUsart2, "Ha SELECCINDADO LA POSICION A2");
+						OLED_print_msg(&handlerOLED, "CASILLA A2    ");
+						break;
+					}
+					case 3: {
+//						writeMsg(&handlerUsart2, "Ha seleccionado la posición A3");
+						OLED_print_msg(&handlerOLED, "CASILLA A3    ");
+						break;
+					}
+					case 4: {
+//						writeMsg(&handlerUsart2, "Ha seleccionado la posición A4");
+						OLED_print_msg(&handlerOLED, "CASILLA A4    ");
+						break;
+					}
+					default: {
+//						writeMsg(&handlerUsart2, "Selección errónea");
+						OLED_print_msg(&handlerOLED, "SELECCION ERRONEA    ");
+						break;
+					}
+					}
+
+				}
+				else{
+					writeMsg(&handlerUsart2, "SELECCIONERRONEA ");
+				}
+				limpiar_casilla();
+				casillaCompleta = 0;
+		}	//Fin if casilla completa
+
+			boton = 0;
+			delay_ms(10);
+
+		}	//Fin if boton
+
+
 
 		if(flagMoneda == 1){
-			sprintf(bufferMsg, "\nDinero ingresado = %u $\n", dinero);
+			sprintf(bufferMsg, "\nDINERO ingresado = %u $\n", dinero);
 			writeMsg(&handlerUsart2, bufferMsg);
 			flagMoneda = 0;
 
@@ -154,7 +239,8 @@ int main(void){
 
 
 	}	//Fin while
-}
+
+}	//Fin main
 
 
 
@@ -164,8 +250,8 @@ void init_hardware(void){
 
 	//Configurar la C1 -> PB7
 
-	handlerColumna1.pGPIOx 								= GPIOB;
-	handlerColumna1.GPIO_PinConfig.GPIO_PinNumber 		= PIN_7;
+	handlerColumna1.pGPIOx 								= GPIOA;
+	handlerColumna1.GPIO_PinConfig.GPIO_PinNumber 		= PIN_15;
 	handlerColumna1.GPIO_PinConfig.GPIO_PinMode			= GPIO_MODE_OUT;
 	handlerColumna1.GPIO_PinConfig.GPIO_PinOPType 		= GPIO_OTYPE_PUSHPULL;
 	handlerColumna1.GPIO_PinConfig.GPIO_PinSpeed 		= GPIO_OSPEED_FAST;
@@ -226,12 +312,12 @@ void init_hardware(void){
 
 	BasicTimer_Config(&handlerBlinkyTimer);
 
-	//Configurar el TIM3 para hacer el barrido
+	//Configurar el TIM4 para hacer el barrido
 
 	handlerBarrido.ptrTIMx 							= TIM4;
 	handlerBarrido.TIMx_Config.TIMx_mode 			= BTIMER_MODE_UP;
-	handlerBarrido.TIMx_Config.TIMx_speed 			= BTIMER_SPEED_1ms;
-	handlerBarrido.TIMx_Config.TIMx_period 			= 5;
+	handlerBarrido.TIMx_Config.TIMx_speed 			= BTIMER_SPEED_100us;
+	handlerBarrido.TIMx_Config.TIMx_period 			= 4;
 	handlerBarrido.TIMx_Config.TIMx_interruptEnable = BTIMER_INTERRUPT_ENABLE;
 
 	BasicTimer_Config(&handlerBarrido);
@@ -348,7 +434,39 @@ void init_hardware(void){
 
 	USART_Config(&handlerUsart2);
 
+	//Inicialización del periférico SysTick
 	config_SysTick_ms(HSI_CLOCK_CONFIGURED);
+
+	// Configurar los elementos para el manejo de la pantalla OLED
+
+	handlerOledSCL.pGPIOx									= GPIOB;
+	handlerOledSCL.GPIO_PinConfig.GPIO_PinNumber			= PIN_8;
+	handlerOledSCL.GPIO_PinConfig.GPIO_PinMode				= GPIO_MODE_ALTFN;
+	handlerOledSCL.GPIO_PinConfig.GPIO_PinOPType   			= GPIO_OTYPE_OPENDRAIN;
+	handlerOledSCL.GPIO_PinConfig.GPIO_PinPuPdControl 		= GPIO_PUPDR_PULLUP;
+	handlerOledSCL.GPIO_PinConfig.GPIO_PinSpeed				= GPIO_OSPEED_FAST;
+	handlerOledSCL.GPIO_PinConfig.GPIO_PinAltFunMode		= AF4;
+
+	GPIO_Config(&handlerOledSCL);
+
+	handlerOledSDA.pGPIOx 								= GPIOB;
+	handlerOledSDA.GPIO_PinConfig.GPIO_PinNumber		= PIN_9;
+	handlerOledSDA.GPIO_PinConfig.GPIO_PinMode			= GPIO_MODE_ALTFN;
+	handlerOledSDA.GPIO_PinConfig.GPIO_PinOPType   		= GPIO_OTYPE_OPENDRAIN;
+	handlerOledSDA.GPIO_PinConfig.GPIO_PinPuPdControl 	= GPIO_PUPDR_PULLUP;
+	handlerOledSDA.GPIO_PinConfig.GPIO_PinSpeed			= GPIO_OSPEED_FAST;
+	handlerOledSDA.GPIO_PinConfig.GPIO_PinAltFunMode	= AF4;
+
+	GPIO_Config(&handlerOledSDA);
+
+
+	handlerOLED.ptrI2Cx				= I2C1;
+	handlerOLED.modeI2C				= I2C_MODE_FM;
+	handlerOLED.slaveAddress		= oLEDAddress;
+	handlerOLED.Clock_Freq			= CLOCK_FREQ_16MHz;
+
+	i2c_config(&handlerOLED);
+
 
 }
 
@@ -360,23 +478,59 @@ void BasicTimer4_Callback(void){
 }
 
 void callback_extInt3(void){	// F1
-	flagFilas = 1;
-	identificarF1();
+	boton = identificarF1();
+	if(llenarCasilla == 1){
+		casilla[0] = boton;
+		casilla1OK = 1;
+		llenarCasilla = 0;
+	}
+	else if(casilla1OK == 1){
+		casilla[1] = boton;
+		llenarCasilla = 0;
+		casillaCompleta = 1;
+	}
 }
 
 void callback_extInt4(void){	//F2
-	flagFilas = 2;
-	identificarF2();
+	boton = identificarF2();
+	if(llenarCasilla == 1){
+		casilla[0] = boton;
+		casilla1OK = 1;
+		llenarCasilla = 0;
+	}
+	else if(casilla1OK == 1){
+		casilla[1] = boton;
+		llenarCasilla = 0;
+		casillaCompleta = 1;
+	}
 }
 
 void callback_extInt1(void){	//F3
-	flagFilas = 3;
-	identificarF3();
+	boton = identificarF3();
+	if(llenarCasilla == 1){
+		casilla[0] = boton;
+		casilla1OK = 1;
+		llenarCasilla = 0;
+	}
+	else if(casilla1OK == 1){
+		casilla[1] = boton;
+		llenarCasilla = 0;
+		casillaCompleta = 1;
+	}
 }
 
 void callback_extInt0(void){	//F4
-	flagFilas = 4;
-	identificarF4();
+	boton = identificarF4();
+	if(llenarCasilla == 1){
+		casilla[0] = boton;
+		casilla1OK = 1;
+		llenarCasilla = 0;
+	}
+	else if(casilla1OK == 1){
+		casilla[1] = boton;
+		llenarCasilla = 0;
+		casillaCompleta = 1;
+	}
 }
 
 void BasicTimer2_Callback(void){
@@ -396,99 +550,109 @@ void usart2Rx_Callback(void){
 }
 
 
-void identificarF1(void){
+char identificarF1(void){
 	switch(banderaBarrido){
 	case 1:{
-		boton = 1;
+		return 1;
 		break;
 	}
 	case 2:{
-		boton = 2;
+		return 2;
 		break;
 	}
 	case 3:{
-		boton = 3;
+		return 3;
 		break;
 	}
 	case 4:{
-		boton = 'A';
+		return 'A';
 		break;
 	}
 	default:{
+		return '0';
 		break;
 	}
 	}
 }
 
-void identificarF2(void){
+char identificarF2(void){
 	switch(banderaBarrido){
 	case 1:{
-		boton = 4;
+		return 4;
 		break;
 	}
 	case 2:{
-		boton = 5;
+		return 5;
 		break;
 	}
 	case 3:{
-		boton = 6;
+		return 6;
 		break;
 	}
 	case 4:{
-		boton = 'B';
+		return 'B';
 		break;
 	}
 	default:{
+		return '0';
 		break;
 	}
 	}
 }
 
-void identificarF3(void){
+char identificarF3(void){
 	switch(banderaBarrido){
 	case 1:{
-		boton = 7;
+		return 7;
 		break;
 	}
 	case 2:{
-		boton = 8;
+		return 8;
 		break;
 	}
 	case 3:{
-		boton = 9;
+		return 9;
 		break;
 	}
 	case 4:{
-		boton = 'C';
+		return 'C';
 		break;
 	}
 	default:{
+		return '0';
 		break;
 	}
 	}
 }
 
-void identificarF4(void){
+char identificarF4(void){
 	switch(banderaBarrido){
 	case 1:{
-		boton = '*';
+		return '*';
 		break;
 	}
 	case 2:{
-		boton = 0;
+		return 0;
 		break;
 	}
 	case 3:{
-		boton = '#';
+		return '#';
 		break;
 	}
 	case 4:{
-		boton = 'D';
+		return 'D';
 		break;
 	}
 	default:{
+		return '0';
 		break;
 	}
+	}
+}
+
+void limpiar_casilla(void){
+	for(uint8_t pos = 0; pos < 2; pos++){
+		casilla[pos] = 0;
 	}
 }
 

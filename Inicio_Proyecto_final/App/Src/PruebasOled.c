@@ -25,6 +25,8 @@
 GPIO_Handler_t handlerOledSDA = {0};
 GPIO_Handler_t handlerOledSCL = {0};
 I2C_Handler_t handlerOLED = {0};
+BasicTimer_Handler_t handlerBlinkyTimer 	= {0};
+GPIO_Handler_t handlerLED2 					= {0};
 
 
 
@@ -36,7 +38,9 @@ int main(void){
 	init_hardware();
 	initOled(&handlerOLED);
 
-	OLED_print_msg(&handlerOLED, "T U V W X Y Z 0 1 2 3 4 5 6 7 8 9 : = $");
+//	OLED_print_msg(&handlerOLED, "T U V W X Y Z");
+//	OLED_print_msg_pag(&handlerOLED, 2, "HOLA");
+	OLED_print_msg(&handlerOLED, "FUNCIONA POR FAVOR JIJIJ");
 	while(1){
 
 	}
@@ -46,6 +50,23 @@ int main(void){
 
 
 void init_hardware(void){
+
+	handlerLED2.pGPIOx 										= GPIOA;
+	handlerLED2.GPIO_PinConfig.GPIO_PinNumber 				= PIN_5;
+	handlerLED2.GPIO_PinConfig.GPIO_PinMode					= GPIO_MODE_OUT;
+	handlerLED2.GPIO_PinConfig.GPIO_PinOPType 				= GPIO_OTYPE_PUSHPULL;
+	handlerLED2.GPIO_PinConfig.GPIO_PinSpeed 				= GPIO_OSPEED_FAST;
+	handlerLED2.GPIO_PinConfig.GPIO_PinPuPdControl 			= GPIO_PUPDR_NOTHING;
+
+	GPIO_Config(&handlerLED2);
+
+	handlerBlinkyTimer.ptrTIMx 								= TIM2;
+	handlerBlinkyTimer.TIMx_Config.TIMx_mode 				= BTIMER_MODE_UP;
+	handlerBlinkyTimer.TIMx_Config.TIMx_speed 				= BTIMER_SPEED_1ms;
+	handlerBlinkyTimer.TIMx_Config.TIMx_period 				= 250;
+	handlerBlinkyTimer.TIMx_Config.TIMx_interruptEnable 	= BTIMER_INTERRUPT_ENABLE;
+
+	BasicTimer_Config(&handlerBlinkyTimer);
 
 	// Configurar los elementos para el manejo de la pantalla oled
 
@@ -78,6 +99,12 @@ void init_hardware(void){
 	i2c_config(&handlerOLED);
 
 	config_SysTick_ms(HSI_CLOCK_CONFIGURED);
+
+
+}
+
+void BasicTimer2_Callback(void){
+	GPIO_TooglePin(&handlerLED2);
 }
 
 

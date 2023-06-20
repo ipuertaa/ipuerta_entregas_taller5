@@ -229,8 +229,9 @@ void sendDataBytesOled(I2C_Handler_t *ptrHandlerI2C, char* variosDatos){
 	//4. Enviamos varios datos
 	for(uint16_t i = 0; i < 8; i++){
 
-		i2c_sendDataByte(ptrHandlerI2C, *(variosDatos));
-		variosDatos++;
+//		i2c_sendDataByte(ptrHandlerI2C, *(variosDatos));
+//		variosDatos++;
+		i2c_sendDataByte(ptrHandlerI2C, variosDatos[i]);
 	}
 	//5. Generamos la condición de STOP para que el valor se detenga despúes de 1 byte
 	i2c_stopTransaction(ptrHandlerI2C);
@@ -270,7 +271,7 @@ void setPaginaOled(I2C_Handler_t *ptrHandlerI2C, uint8_t pagina){
 	comandoOled(ptrHandlerI2C, comandoPag);
 }
 
-void EscribirPaginaOled(I2C_Handler_t *ptrHandlerI2C, uint8_t pagina, char* *data){
+void EscribirPaginaOled(I2C_Handler_t *ptrHandlerI2C, uint8_t pagina, char**data){
 
 	//Me ubico en la página correspondiente
 	setPaginaOled(ptrHandlerI2C, pagina);
@@ -279,8 +280,10 @@ void EscribirPaginaOled(I2C_Handler_t *ptrHandlerI2C, uint8_t pagina, char* *dat
 	for(uint16_t data_i = 0; data_i < 16; data_i++){
 		//El 16 es porque eso es lo que cabe en una página
 
-		sendDataBytesOled(ptrHandlerI2C, *(data + data_i));
+//		sendDataBytesOled(ptrHandlerI2C, *(data + data_i));
 //		data++;
+		sendDataBytesOled(ptrHandlerI2C, data[data_i]);
+
 	}
 
 }
@@ -505,105 +508,166 @@ char* ASCIItoChar(char caracter){
 
 
 // Función para escribir un mensaje en una pagina
-void OLED_print_msg_pag(I2C_Handler_t *ptrHandlerI2C, uint8_t pagina, char *msgToSend){
+void OLED_print_msg_pag(I2C_Handler_t *ptrHandlerI2C, uint8_t pagina, char *msgToSendOLED){
 
 	//Me ubico en la página
-	setPaginaOled(ptrHandlerI2C, pagina);
-
-	for(uint8_t pag_i = 0; pag_i < 16; pag_i++){
-		sendDataBytesOled(ptrHandlerI2C, ASCIItoChar(*msgToSend));
-		msgToSend++;
-	}
-
-
-}
-//Función para escribir un mensaje en toda la pantalla
-void OLED_print_msg(I2C_Handler_t *ptrHandlerI2C, char *msgToSend){
-
-	//Limpio la pantalla
 	clearScreenOLED(ptrHandlerI2C);
-
-	//Me ubico en el primer renglón
-	setPaginaOled(ptrHandlerI2C, 1);
+	setPaginaOled(ptrHandlerI2C, pagina);
 	setFilaInicio(ptrHandlerI2C, 0);
 	comandoOled(ptrHandlerI2C, 0x02);
 
 
-	//Envío los datos del primer renglón
-	for(uint8_t k = 0; k < 16; k++){
-		sendDataBytesOled(ptrHandlerI2C, ASCIItoChar(*msgToSend));
-		msgToSend++;
-	}
 
-	//Me ubico en el segundo renglón
-	setPaginaOled(ptrHandlerI2C, 3);
-	setFilaInicio(ptrHandlerI2C, 0);
+//	while(*(msgToSendOLED) != '\0'){
+		for (uint8_t pag_i = 0; pag_i < 16; pag_i++) {
+//			sendDataBytesOled(ptrHandlerI2C, ASCIItoChar(*msgToSendOLED));
+//			msgToSendOLED++;
+			if(msgToSendOLED[pag_i] != '\0'){
+				sendDataBytesOled(ptrHandlerI2C, ASCIItoChar(msgToSendOLED[pag_i]));
+			}
 
-	//Envío los datos del segundo renglón
-	for(uint8_t k = 16; k < 32; k++){
-		sendDataBytesOled(ptrHandlerI2C, ASCIItoChar(*msgToSend));
-		msgToSend++;
-	}
-
-	//Me ubico en el tercer renglón
-	setPaginaOled(ptrHandlerI2C, 5);
-	setFilaInicio(ptrHandlerI2C, 0);
-
-	//Envío los datos del tercer renglón
-	for(uint8_t k = 32; k < 48; k++){
-		sendDataBytesOled(ptrHandlerI2C, ASCIItoChar(*msgToSend));
-		msgToSend++;
-	}
-
-	//Me ubico en el cuarto renglón
-	setPaginaOled(ptrHandlerI2C, 7);
-	setFilaInicio(ptrHandlerI2C, 0);
-
-	//Envío los datos del cuarto renglón
-	for(uint8_t k = 48; k < 64; k++){
-		sendDataBytesOled(ptrHandlerI2C, ASCIItoChar(*msgToSend));
-		msgToSend++;
-	}
-
-//	//Me ubico en el quinto renglón
-//	setPaginaOled(ptrHandlerI2C, 4);
-//	setFilaInicio(ptrHandlerI2C, 0);
-//
-//	//Envío los datos del quinto renglón
-//	for(uint8_t k = 64; k < 80; k++){
-//		sendDataBytesOled(ptrHandlerI2C, ASCIItoChar(*msgToSend));
-//		msgToSend++;
+		}
 //	}
-//
-//	//Me ubico en el sexto renglón
-//	setPaginaOled(ptrHandlerI2C, 5);
-//	setFilaInicio(ptrHandlerI2C, 0);
-//
-//	//Envío los datos del sexto renglón
-//	for(uint8_t k = 80; k < 96; k++){
-//		sendDataBytesOled(ptrHandlerI2C, ASCIItoChar(*msgToSend));
-//		msgToSend++;
+}
+//Función para escribir un mensaje en toda la pantalla
+void OLED_print_msg(I2C_Handler_t *ptrHandlerI2C, char *msgToSendOLED){
+
+//	Limpio la pantalla
+	clearScreenOLED(ptrHandlerI2C);
+	comandoOled(ptrHandlerI2C, 0x02);
+
+
+//	while(*(msgToSendOLED) != '\0'){
+
+		//Me ubico en el primer renglón
+		setPaginaOled(ptrHandlerI2C, 1);
+		setFilaInicio(ptrHandlerI2C, 0);
+
+		//Envío los datos del primer renglón
+		for (uint8_t k = 0; k < 16; k++) {
+
+//			sendDataBytesOled(ptrHandlerI2C, ASCIItoChar(*msgToSendOLED));
+//			msgToSendOLED++;
+			if(msgToSendOLED[k] != '\0'){
+				sendDataBytesOled(ptrHandlerI2C, ASCIItoChar(msgToSendOLED[k]));
+			}
+			else{
+				return;
+			}
+
+		}
 //	}
-//
-//	//Me ubico en el cuarto renglón
-//	setPaginaOled(ptrHandlerI2C, 6);
-//	setFilaInicio(ptrHandlerI2C, 0);
-//
-//	//Envío los datos del séptimo renglón
-//	for(uint8_t k = 96; k < 112; k++){
-//		sendDataBytesOled(ptrHandlerI2C, ASCIItoChar(*msgToSend));
-//		msgToSend++;
+
+//	while(*(msgToSendOLED) != '\0'){
+
+		//Me ubico en el segundo renglón
+		setPaginaOled(ptrHandlerI2C, 3);
+		setFilaInicio(ptrHandlerI2C, 0);
+
+		//Envío los datos del segundo renglón
+		for (uint8_t k = 16; k < 32; k++) {
+//			sendDataBytesOled(ptrHandlerI2C, ASCIItoChar(*msgToSendOLED));
+//			msgToSendOLED++;
+//			sendDataBytesOled(ptrHandlerI2C, ASCIItoChar(msgToSendOLED[k]));
+			if(msgToSendOLED[k] != '\0'){
+				sendDataBytesOled(ptrHandlerI2C, ASCIItoChar(msgToSendOLED[k]));
+			}
+			else{
+				return;
+			}
+		}
 //	}
-//
-//	//Me ubico en el cuarto renglón
-//	setPaginaOled(ptrHandlerI2C, 7);
-//	setFilaInicio(ptrHandlerI2C, 0);
-//
-//	//Envío los datos del octavo renglón
-//	for(uint8_t k = 112; k < 128; k++){
-//		sendDataBytesOled(ptrHandlerI2C, ASCIItoChar(*msgToSend));
-//		msgToSend++;
+
+//	while(*(msgToSendOLED) != '\0'){
+		//Me ubico en el tercer renglón
+		setPaginaOled(ptrHandlerI2C, 5);
+		setFilaInicio(ptrHandlerI2C, 0);
+
+		//Envío los datos del tercer renglón
+		for (uint8_t k = 32; k < 48; k++) {
+//			sendDataBytesOled(ptrHandlerI2C, ASCIItoChar(*msgToSendOLED));
+//			msgToSendOLED++;
+//			sendDataBytesOled(ptrHandlerI2C, ASCIItoChar(msgToSendOLED[k]));
+			if(msgToSendOLED[k] != '\0'){
+				sendDataBytesOled(ptrHandlerI2C, ASCIItoChar(msgToSendOLED[k]));
+			}
+			else{
+				return;
+			}
+		}
 //	}
+
+
+//	while(*(msgToSendOLED) != '\0'){
+		//Me ubico en el cuarto renglón
+		setPaginaOled(ptrHandlerI2C, 7);
+		setFilaInicio(ptrHandlerI2C, 0);
+
+		//Envío los datos del cuarto renglón
+		for (uint8_t k = 48; k < 64; k++) {
+//			sendDataBytesOled(ptrHandlerI2C, ASCIItoChar(*msgToSendOLED));
+//			msgToSendOLED++;
+//			sendDataBytesOled(ptrHandlerI2C, ASCIItoChar(msgToSendOLED[k]));
+			if(msgToSendOLED[k] != '\0'){
+				sendDataBytesOled(ptrHandlerI2C, ASCIItoChar(msgToSendOLED[k]));
+			}
+			else{
+				return;
+			}
+		}
+//	}
+
+
+
+
+
+
+
+		//	//Me ubico en el quinto renglón
+		//	setPaginaOled(ptrHandlerI2C, 4);
+		//	setFilaInicio(ptrHandlerI2C, 0);
+		//
+		//	//Envío los datos del quinto renglón
+		//	for(uint8_t k = 64; k < 80; k++){
+		//		sendDataBytesOled(ptrHandlerI2C, ASCIItoChar(*msgToSend));
+		//		msgToSend++;
+		//	}
+		//
+		//	//Me ubico en el sexto renglón
+		//	setPaginaOled(ptrHandlerI2C, 5);
+		//	setFilaInicio(ptrHandlerI2C, 0);
+		//
+		//	//Envío los datos del sexto renglón
+		//	for(uint8_t k = 80; k < 96; k++){
+		//		sendDataBytesOled(ptrHandlerI2C, ASCIItoChar(*msgToSend));
+		//		msgToSend++;
+		//	}
+		//
+		//	//Me ubico en el cuarto renglón
+		//	setPaginaOled(ptrHandlerI2C, 6);
+		//	setFilaInicio(ptrHandlerI2C, 0);
+		//
+		//	//Envío los datos del séptimo renglón
+		//	for(uint8_t k = 96; k < 112; k++){
+		//		sendDataBytesOled(ptrHandlerI2C, ASCIItoChar(*msgToSend));
+		//		msgToSend++;
+		//	}
+		//
+		//	//Me ubico en el cuarto renglón
+		//	setPaginaOled(ptrHandlerI2C, 7);
+		//	setFilaInicio(ptrHandlerI2C, 0);
+		//
+		//	//Envío los datos del octavo renglón
+		//	for(uint8_t k = 112; k < 128; k++){
+		//		sendDataBytesOled(ptrHandlerI2C, ASCIItoChar(*msgToSend));
+		//		msgToSend++;
+		//	}
+
+
+
+
+
+
 }
 
 
