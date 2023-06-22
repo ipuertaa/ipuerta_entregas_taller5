@@ -31,5 +31,6 @@ char* ASCIItoChar(char caracter);
 void EscribirPaginaOled(I2C_Handler_t *ptrHandlerI2C, uint8_t pagina, char* *data);
 void OLED_print_msg_pag(I2C_Handler_t *ptrHandlerI2C, uint8_t pagina, char *msgToSendOLED);
 void OLED_print_msg(I2C_Handler_t *ptrHandlerI2C, char *msgToSendOLED);
+void OLED_print_msg_pag_inicio(I2C_Handler_t *ptrHandlerI2C, uint8_t pagina, char *msgToSendOLED, uint8_t inicio);
 
 #endif /* OLEDDRIVER_H_ */

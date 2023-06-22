@@ -43,7 +43,7 @@ uint16_t dinero = 0;
 #define PRECIO_CELDA4  3500
 #define oLEDAddress 			0x3C
 
-char boton = 0;
+char boton = 10;
 char casilla[2] = {0};
 uint8_t llenarCasilla = 0;
 uint8_t casillaCompleta = 0;
@@ -96,7 +96,7 @@ GPIO_Handler_t handlerOledSDA = {0};
 GPIO_Handler_t handlerOledSCL = {0};
 I2C_Handler_t handlerOLED = {0};
 
-char dummyMsg[] = "BIENVENIDO";
+char dummyMsg[64] = {0};
 
 // Cabeceras de funciones
 
@@ -112,73 +112,98 @@ int main(void){
 	init_hardware();
 	delay_ms(10);
 	initOled(&handlerOLED);
-
-//	sprintf(bufferMsg,"   BIENVENIDO    OPRIMA EL BOTON" );
-	OLED_print_msg(&handlerOLED, "   BIENVENIDO    OPRIMA EL BOTON");
-
-
-
-//	delay_ms(50);
+	delay_ms(10);
+	sprintf(bufferMsg, "  BIENVENIDO       OPRIMA BOTON");
+	OLED_print_msg(&handlerOLED, bufferMsg);
 
 
 	while(1){
 
-		if(boton != 0){
-			clearScreenOLED(&handlerOLED);
-			delay_ms(5);
-			sprintf(bufferMsg, "TECLA OPRIMIDA %u", boton);
-			OLED_print_msg(&handlerOLED, bufferMsg);
+		if(boton != 10){
 
-
-			if(boton == '*'){
-				llenarCasilla = 1;
+//			sprintf(bufferMsg, "BOTON");
+//			OLED_print_msg_pag_inicio(&handlerOLED, 2, bufferMsg, 0);
+			switch (boton){
+			case 1:{
 				clearScreenOLED(&handlerOLED);
-				sprintf(bufferMsg, "SELECCIONAR POSICION");
-				OLED_print_msg(&handlerOLED, bufferMsg);
+				delay_ms(1);
+				sprintf(dummyMsg, "%u", boton);
+//				OLED_print_msg_pag(&handlerOLED, 2, dummyMsg);
+				OLED_print_msg_pag_inicio(&handlerOLED, 2, dummyMsg, 7);
+				break;
 			}
-			if(casillaCompleta == 1){
+			case 2:{
+				clearScreenOLED(&handlerOLED);
+				sprintf(dummyMsg, "%u", boton);
+				OLED_print_msg_pag_inicio(&handlerOLED, 2, dummyMsg, 7);
+				break;
+			}
+			case 3:{
+				clearScreenOLED(&handlerOLED);
+				sprintf(dummyMsg, "%u", boton);
+				OLED_print_msg_pag_inicio(&handlerOLED, 2, dummyMsg, 7);
+				break;
+			}
+			case 4:{
+				clearScreenOLED(&handlerOLED);
+				sprintf(dummyMsg, "%u", boton);
+				OLED_print_msg_pag_inicio(&handlerOLED, 2, dummyMsg, 7);
+				break;
+			}
+			case 5:{
+				clearScreenOLED(&handlerOLED);
+				sprintf(dummyMsg, "%u", boton);
+				OLED_print_msg_pag_inicio(&handlerOLED, 2, dummyMsg, 7);
+				break;
+			}
+			case 6:{
+				clearScreenOLED(&handlerOLED);
+				sprintf(dummyMsg, "%u", boton);
+				OLED_print_msg_pag_inicio(&handlerOLED, 2, dummyMsg, 7);
+				break;
+			}
 
-				if (casilla[0] == 'A') {
-					switch (casilla[1]) {
-					case 1: {
-//						writeMsg(&handlerUsart2, "Ha seccionado la posición A1");
-						OLED_print_msg(&handlerOLED, "CASILLA A1    ");
-						break;
-					}
-					case 2: {
-//						writeMsg(&handlerUsart2, "Ha SELECCINDADO LA POSICION A2");
-						OLED_print_msg(&handlerOLED, "CASILLA A2    ");
-						break;
-					}
-					case 3: {
-//						writeMsg(&handlerUsart2, "Ha seleccionado la posición A3");
-						OLED_print_msg(&handlerOLED, "CASILLA A3    ");
-						break;
-					}
-					case 4: {
-//						writeMsg(&handlerUsart2, "Ha seleccionado la posición A4");
-						OLED_print_msg(&handlerOLED, "CASILLA A4    ");
-						break;
-					}
-					default: {
-//						writeMsg(&handlerUsart2, "Selección errónea");
-						OLED_print_msg(&handlerOLED, "SELECCION ERRONEA    ");
-						break;
-					}
-					}
+			case 7:{
+				clearScreenOLED(&handlerOLED);
+				sprintf(dummyMsg, "%u", boton);
+				OLED_print_msg_pag_inicio(&handlerOLED, 2, dummyMsg, 7);
+				break;
+			}
+			case 8:{
+				clearScreenOLED(&handlerOLED);
+				sprintf(dummyMsg, "%u", boton);
+				OLED_print_msg_pag_inicio(&handlerOLED, 2, dummyMsg, 7);
+				break;
+			}
+			case 9:{
+				clearScreenOLED(&handlerOLED);
+				sprintf(dummyMsg, "%u", boton);
+				OLED_print_msg_pag_inicio(&handlerOLED, 2, dummyMsg, 7);
+				break;
+			}
+			case 0:{
+				clearScreenOLED(&handlerOLED);
+				sprintf(dummyMsg, "%u", boton);
+				OLED_print_msg_pag_inicio(&handlerOLED, 2, dummyMsg, 7);
+				break;
+			}
+			default:{
+				clearScreenOLED(&handlerOLED);
+				sprintf(dummyMsg, "ERROR DEFAULT");
+				OLED_print_msg(&handlerOLED, dummyMsg);
+				break;
+			}
 
-				}
-				else{
-					writeMsg(&handlerUsart2, "SELECCIONERRONEA ");
-				}
-				limpiar_casilla();
-				casillaCompleta = 0;
-		}	//Fin if casilla completa
+			}
 
-			boton = 0;
-			delay_ms(10);
+
+
+
+			boton = 10;
+//			delay_ms(30);
 
 		}	//Fin if boton
+
 
 
 
@@ -195,7 +220,7 @@ int main(void){
 				GPIO_WritePin(&handlerColumna1, SET);
 				GPIO_WritePin(&handlerColumna2, RESET);
 				GPIO_WritePin(&handlerColumna3, RESET);
-				GPIO_WritePin(&handlerColumna4, RESET);
+//				GPIO_WritePin(&handlerColumna4, RESET);
 				banderaCondicion = 1;
 				break;
 			}
@@ -203,7 +228,7 @@ int main(void){
 				GPIO_WritePin(&handlerColumna1, RESET);
 				GPIO_WritePin(&handlerColumna2, SET);
 				GPIO_WritePin(&handlerColumna3, RESET);
-				GPIO_WritePin(&handlerColumna4, RESET);
+//				GPIO_WritePin(&handlerColumna4, RESET);
 				banderaCondicion = 1;
 				break;
 			}
@@ -211,20 +236,21 @@ int main(void){
 				GPIO_WritePin(&handlerColumna1, RESET);
 				GPIO_WritePin(&handlerColumna2, RESET);
 				GPIO_WritePin(&handlerColumna3, SET);
-				GPIO_WritePin(&handlerColumna4, RESET);
-				banderaCondicion = 1;
-				break;
-
-			}
-			case 4:{
-				GPIO_WritePin(&handlerColumna1, RESET);
-				GPIO_WritePin(&handlerColumna2, RESET);
-				GPIO_WritePin(&handlerColumna3, RESET);
-				GPIO_WritePin(&handlerColumna4, SET);
+//				GPIO_WritePin(&handlerColumna4, RESET);
 				banderaCondicion = 1;
 				banderaBarrido = 0;
 				break;
+
 			}
+//			case 4:{
+//				GPIO_WritePin(&handlerColumna1, RESET);
+//				GPIO_WritePin(&handlerColumna2, RESET);
+//				GPIO_WritePin(&handlerColumna3, RESET);
+//				GPIO_WritePin(&handlerColumna4, SET);
+//				banderaCondicion = 1;
+//				banderaBarrido = 0;
+//				break;
+//			}
 			default:{
 				__NOP();
 			}
@@ -248,7 +274,7 @@ int main(void){
 
 void init_hardware(void){
 
-	//Configurar la C1 -> PB7
+	//Configurar la C1
 
 	handlerColumna1.pGPIOx 								= GPIOA;
 	handlerColumna1.GPIO_PinConfig.GPIO_PinNumber 		= PIN_15;
@@ -258,6 +284,7 @@ void init_hardware(void){
 	handlerColumna1.GPIO_PinConfig.GPIO_PinPuPdControl 	= GPIO_PUPDR_NOTHING;
 
 	GPIO_Config(&handlerColumna1);		//Cargar la configuración
+	GPIO_WritePin(&handlerColumna1, RESET);
 
 
 	//Configurar la C2 -> PB0
@@ -270,6 +297,7 @@ void init_hardware(void){
 	handlerColumna2.GPIO_PinConfig.GPIO_PinPuPdControl 	= GPIO_PUPDR_NOTHING;
 
 	GPIO_Config(&handlerColumna2);		//Cargar la configuración
+	GPIO_WritePin(&handlerColumna2, RESET);
 
 
 	//Configurar la C3 -> PC13
@@ -282,17 +310,18 @@ void init_hardware(void){
 	handlerColumna3.GPIO_PinConfig.GPIO_PinPuPdControl 	= GPIO_PUPDR_NOTHING;
 
 	GPIO_Config(&handlerColumna3);		//Cargar la configuración
+	GPIO_WritePin(&handlerColumna3, RESET);
 
-	//Configurar la C4 -> PC2
-
-	handlerColumna4.pGPIOx 								= GPIOC;
-	handlerColumna4.GPIO_PinConfig.GPIO_PinNumber 		= PIN_2;
-	handlerColumna4.GPIO_PinConfig.GPIO_PinMode			= GPIO_MODE_OUT;
-	handlerColumna4.GPIO_PinConfig.GPIO_PinOPType 		= GPIO_OTYPE_PUSHPULL;
-	handlerColumna4.GPIO_PinConfig.GPIO_PinSpeed 		= GPIO_OSPEED_FAST;
-	handlerColumna4.GPIO_PinConfig.GPIO_PinPuPdControl 	= GPIO_PUPDR_NOTHING;
-
-	GPIO_Config(&handlerColumna4);		//Cargar la configuración
+//	//Configurar la C4 -> PC2
+//
+//	handlerColumna4.pGPIOx 								= GPIOC;
+//	handlerColumna4.GPIO_PinConfig.GPIO_PinNumber 		= PIN_2;
+//	handlerColumna4.GPIO_PinConfig.GPIO_PinMode			= GPIO_MODE_OUT;
+//	handlerColumna4.GPIO_PinConfig.GPIO_PinOPType 		= GPIO_OTYPE_PUSHPULL;
+//	handlerColumna4.GPIO_PinConfig.GPIO_PinSpeed 		= GPIO_OSPEED_FAST;
+//	handlerColumna4.GPIO_PinConfig.GPIO_PinPuPdControl 	= GPIO_PUPDR_NOTHING;
+//
+//	GPIO_Config(&handlerColumna4);		//Cargar la configuración
 
 
 	handlerLED2.pGPIOx 										= GPIOA;
@@ -316,7 +345,7 @@ void init_hardware(void){
 
 	handlerBarrido.ptrTIMx 							= TIM4;
 	handlerBarrido.TIMx_Config.TIMx_mode 			= BTIMER_MODE_UP;
-	handlerBarrido.TIMx_Config.TIMx_speed 			= BTIMER_SPEED_100us;
+	handlerBarrido.TIMx_Config.TIMx_speed 			= BTIMER_SPEED_1ms;
 	handlerBarrido.TIMx_Config.TIMx_period 			= 4;
 	handlerBarrido.TIMx_Config.TIMx_interruptEnable = BTIMER_INTERRUPT_ENABLE;
 
@@ -479,58 +508,58 @@ void BasicTimer4_Callback(void){
 
 void callback_extInt3(void){	// F1
 	boton = identificarF1();
-	if(llenarCasilla == 1){
-		casilla[0] = boton;
-		casilla1OK = 1;
-		llenarCasilla = 0;
-	}
-	else if(casilla1OK == 1){
-		casilla[1] = boton;
-		llenarCasilla = 0;
-		casillaCompleta = 1;
-	}
+//	if(llenarCasilla == 1){
+//		casilla[0] = boton;
+//		casilla1OK = 1;
+//		llenarCasilla = 0;
+//	}
+//	else if(casilla1OK == 1){
+//		casilla[1] = boton;
+//		llenarCasilla = 0;
+//		casillaCompleta = 1;
+//	}
 }
 
 void callback_extInt4(void){	//F2
 	boton = identificarF2();
-	if(llenarCasilla == 1){
-		casilla[0] = boton;
-		casilla1OK = 1;
-		llenarCasilla = 0;
-	}
-	else if(casilla1OK == 1){
-		casilla[1] = boton;
-		llenarCasilla = 0;
-		casillaCompleta = 1;
-	}
+//	if(llenarCasilla == 1){
+//		casilla[0] = boton;
+//		casilla1OK = 1;
+//		llenarCasilla = 0;
+//	}
+//	else if(casilla1OK == 1){
+//		casilla[1] = boton;
+//		llenarCasilla = 0;
+//		casillaCompleta = 1;
+//	}
 }
 
 void callback_extInt1(void){	//F3
 	boton = identificarF3();
-	if(llenarCasilla == 1){
-		casilla[0] = boton;
-		casilla1OK = 1;
-		llenarCasilla = 0;
-	}
-	else if(casilla1OK == 1){
-		casilla[1] = boton;
-		llenarCasilla = 0;
-		casillaCompleta = 1;
-	}
+//	if(llenarCasilla == 1){
+//		casilla[0] = boton;
+//		casilla1OK = 1;
+//		llenarCasilla = 0;
+//	}
+//	else if(casilla1OK == 1){
+//		casilla[1] = boton;
+//		llenarCasilla = 0;
+//		casillaCompleta = 1;
+//	}
 }
 
 void callback_extInt0(void){	//F4
 	boton = identificarF4();
-	if(llenarCasilla == 1){
-		casilla[0] = boton;
-		casilla1OK = 1;
-		llenarCasilla = 0;
-	}
-	else if(casilla1OK == 1){
-		casilla[1] = boton;
-		llenarCasilla = 0;
-		casillaCompleta = 1;
-	}
+//	if(llenarCasilla == 1){
+//		casilla[0] = boton;
+//		casilla1OK = 1;
+//		llenarCasilla = 0;
+//	}
+//	else if(casilla1OK == 1){
+//		casilla[1] = boton;
+//		llenarCasilla = 0;
+//		casillaCompleta = 1;
+//	}
 }
 
 void BasicTimer2_Callback(void){
@@ -564,12 +593,12 @@ char identificarF1(void){
 		return 3;
 		break;
 	}
-	case 4:{
-		return 'A';
-		break;
-	}
+//	case 4:{
+//		return 'A';
+//		break;
+//	}
 	default:{
-		return '0';
+		return 0;
 		break;
 	}
 	}
@@ -589,12 +618,12 @@ char identificarF2(void){
 		return 6;
 		break;
 	}
-	case 4:{
-		return 'B';
-		break;
-	}
+//	case 4:{
+//		return 'B';
+//		break;
+//	}
 	default:{
-		return '0';
+		return 0;
 		break;
 	}
 	}
@@ -614,12 +643,12 @@ char identificarF3(void){
 		return 9;
 		break;
 	}
-	case 4:{
-		return 'C';
-		break;
-	}
+//	case 4:{
+//		return 'C';
+//		break;
+//	}
 	default:{
-		return '0';
+		return 0;
 		break;
 	}
 	}
@@ -639,12 +668,12 @@ char identificarF4(void){
 		return '#';
 		break;
 	}
-	case 4:{
-		return 'D';
-		break;
-	}
+//	case 4:{
+//		return 'D';
+//		break;
+//	}
 	default:{
-		return '0';
+		return 0;
 		break;
 	}
 	}

@@ -10,6 +10,7 @@
  */
 
 #include "GPIOxDriver.h"
+#include <stm32f4xx.h>
 
 /*
  * Para cualquier periférico, hay varios pasos que siempre se deben seguir en un orden estricto para poder que

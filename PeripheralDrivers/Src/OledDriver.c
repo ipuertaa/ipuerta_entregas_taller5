@@ -529,6 +529,29 @@ void OLED_print_msg_pag(I2C_Handler_t *ptrHandlerI2C, uint8_t pagina, char *msgT
 		}
 //	}
 }
+
+// Función para escribir un mensaje en una pagina y en una posicion particular
+void OLED_print_msg_pag_inicio(I2C_Handler_t *ptrHandlerI2C, uint8_t pagina, char *msgToSendOLED, uint8_t inicio){
+
+	//Me ubico en la página
+//	clearScreenOLED(ptrHandlerI2C);
+	setPaginaOled(ptrHandlerI2C, pagina);
+	setFilaInicio(ptrHandlerI2C, inicio);
+	comandoOled(ptrHandlerI2C, 0x02);
+
+
+
+//	while(*(msgToSendOLED) != '\0'){
+		for (uint8_t pag_i = 0; pag_i < 16; pag_i++) {
+//			sendDataBytesOled(ptrHandlerI2C, ASCIItoChar(*msgToSendOLED));
+//			msgToSendOLED++;
+			if(msgToSendOLED[pag_i] != '\0'){
+				sendDataBytesOled(ptrHandlerI2C, ASCIItoChar(msgToSendOLED[pag_i]));
+			}
+
+		}
+//	}
+}
 //Función para escribir un mensaje en toda la pantalla
 void OLED_print_msg(I2C_Handler_t *ptrHandlerI2C, char *msgToSendOLED){
 
