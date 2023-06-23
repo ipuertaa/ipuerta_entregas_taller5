@@ -31,7 +31,6 @@
 //Definición de variables
 
 uint8_t banderaBarrido = 0;
-uint8_t auxbanderaBarrido = 0;
 uint8_t banderaCondicion = 0;
 uint8_t flagFilas  = 0;
 uint8_t flagMoneda = 0;
@@ -47,7 +46,7 @@ char boton = 10;
 char casilla[2] = {0};
 uint8_t llenarCasilla = 0;
 uint8_t casillaCompleta = 0;
-uint8_t casilla1OK = 0;
+uint8_t contenidoOK = 0;
 
 
 
@@ -101,10 +100,10 @@ char dummyMsg[64] = {0};
 // Cabeceras de funciones
 
 void init_hardware(void);		//Función para la configuración de pines.
-char identificarF1(void);
-char identificarF2(void);
-char identificarF3(void);
-char identificarF4(void);
+void identificarF1(void);
+void identificarF2(void);
+void identificarF3(void);
+void identificarF4(void);
 void limpiar_casilla(void);
 
 int main(void){
@@ -113,8 +112,8 @@ int main(void){
 	delay_ms(10);
 	initOled(&handlerOLED);
 	delay_ms(10);
-	sprintf(bufferMsg, "  BIENVENIDO       OPRIMA BOTON");
-	OLED_print_msg(&handlerOLED, bufferMsg);
+//	sprintf(bufferMsg, "  BIENVENIDO       OPRIMA BOTON");
+	OLED_print_msg(&handlerOLED, "BIENVENIDO $ : =");
 
 
 	while(1){
@@ -126,81 +125,101 @@ int main(void){
 			switch (boton){
 			case 1:{
 				clearScreenOLED(&handlerOLED);
-				delay_ms(1);
-				sprintf(dummyMsg, "%u", boton);
-//				OLED_print_msg_pag(&handlerOLED, 2, dummyMsg);
-				OLED_print_msg_pag_inicio(&handlerOLED, 2, dummyMsg, 7);
+				sprintf(bufferMsg, "CASILLA %u ACTIVA", boton);
+				OLED_print_msg_pag(&handlerOLED, 2, bufferMsg);
 				break;
+				//VERIFICAR CONTENIDO
+				contenidoOK = 1;
 			}
 			case 2:{
 				clearScreenOLED(&handlerOLED);
-				sprintf(dummyMsg, "%u", boton);
-				OLED_print_msg_pag_inicio(&handlerOLED, 2, dummyMsg, 7);
+				sprintf(bufferMsg, "CASILLA %u ACTIVA", boton);
+//				OLED_print_msg_pag_inicio(&handlerOLED, 2, dummyMsg, 7);
+				OLED_print_msg_pag(&handlerOLED, 2, bufferMsg);
 				break;
+				//VERIFICAR CONTENIDO
+				contenidoOK = 1;
 			}
 			case 3:{
 				clearScreenOLED(&handlerOLED);
-				sprintf(dummyMsg, "%u", boton);
-				OLED_print_msg_pag_inicio(&handlerOLED, 2, dummyMsg, 7);
+				sprintf(bufferMsg, "CASILLA %u ACTIVA", boton);
+//				OLED_print_msg_pag_inicio(&handlerOLED, 2, dummyMsg, 7);
+				OLED_print_msg_pag(&handlerOLED, 2, bufferMsg);
 				break;
+				//VERIFICAR CONTENIDO
+				contenidoOK = 1;
 			}
 			case 4:{
 				clearScreenOLED(&handlerOLED);
-				sprintf(dummyMsg, "%u", boton);
-				OLED_print_msg_pag_inicio(&handlerOLED, 2, dummyMsg, 7);
+				sprintf(bufferMsg, "CASILLA %u ACTIVA", boton);
+//				OLED_print_msg_pag_inicio(&handlerOLED, 2, dummyMsg, 7);
+				OLED_print_msg_pag(&handlerOLED, 2, bufferMsg);
 				break;
+				//VERIFICAR CONTENIDO
+				contenidoOK = 1;
 			}
 			case 5:{
 				clearScreenOLED(&handlerOLED);
-				sprintf(dummyMsg, "%u", boton);
-				OLED_print_msg_pag_inicio(&handlerOLED, 2, dummyMsg, 7);
+				sprintf(dummyMsg, "CASILLA %u NA", boton);
+//				OLED_print_msg_pag_inicio(&handlerOLED, 2, dummyMsg, 7);
+				OLED_print_msg_pag(&handlerOLED, 2, dummyMsg);
 				break;
 			}
 			case 6:{
 				clearScreenOLED(&handlerOLED);
-				sprintf(dummyMsg, "%u", boton);
-				OLED_print_msg_pag_inicio(&handlerOLED, 2, dummyMsg, 7);
+				sprintf(dummyMsg, "CASILLA %u NA", boton);
+//				OLED_print_msg_pag_inicio(&handlerOLED, 2, dummyMsg, 7);
+				OLED_print_msg_pag(&handlerOLED, 2, dummyMsg);
 				break;
 			}
 
 			case 7:{
 				clearScreenOLED(&handlerOLED);
-				sprintf(dummyMsg, "%u", boton);
-				OLED_print_msg_pag_inicio(&handlerOLED, 2, dummyMsg, 7);
+				sprintf(dummyMsg, "CASILLA %u NA", boton);
+//				OLED_print_msg_pag_inicio(&handlerOLED, 2, dummyMsg, 7);
+				OLED_print_msg_pag(&handlerOLED, 2, dummyMsg);
 				break;
 			}
 			case 8:{
 				clearScreenOLED(&handlerOLED);
-				sprintf(dummyMsg, "%u", boton);
-				OLED_print_msg_pag_inicio(&handlerOLED, 2, dummyMsg, 7);
+				sprintf(dummyMsg, "CASILLA %u NA", boton);
+//				OLED_print_msg_pag_inicio(&handlerOLED, 2, dummyMsg, 7);
+				OLED_print_msg_pag(&handlerOLED, 2, dummyMsg);
 				break;
 			}
 			case 9:{
 				clearScreenOLED(&handlerOLED);
-				sprintf(dummyMsg, "%u", boton);
-				OLED_print_msg_pag_inicio(&handlerOLED, 2, dummyMsg, 7);
+				sprintf(dummyMsg, "CASILLA %u NA", boton);
+//				OLED_print_msg_pag_inicio(&handlerOLED, 2, dummyMsg, 7);
+				OLED_print_msg_pag(&handlerOLED, 2, dummyMsg);
 				break;
 			}
 			case 0:{
 				clearScreenOLED(&handlerOLED);
-				sprintf(dummyMsg, "%u", boton);
-				OLED_print_msg_pag_inicio(&handlerOLED, 2, dummyMsg, 7);
+				sprintf(dummyMsg, "CASILLA %u NA", boton);
+//				OLED_print_msg_pag_inicio(&handlerOLED, 2, dummyMsg, 7);
+				OLED_print_msg_pag(&handlerOLED, 2, dummyMsg);
 				break;
 			}
+			case '*':{
+				clearScreenOLED(&handlerOLED);
+				sprintf(bufferMsg, "CASILLA %u ACTIVA", boton);
+//				OLED_print_msg(&handlerOLED, "SELECCIONAR POSICION");
+				OLED_print_msg_pag(&handlerOLED, 2, bufferMsg);
+				break;
+
+			}
+
 			default:{
 				clearScreenOLED(&handlerOLED);
-				sprintf(dummyMsg, "ERROR DEFAULT");
-				OLED_print_msg(&handlerOLED, dummyMsg);
+//				sprintf(bufferMsg, "ERROR DEFAULT");
+				OLED_print_msg(&handlerOLED, "ERROR");
 				break;
 			}
 
 			}
-
-
-
-
 			boton = 10;
-//			delay_ms(30);
+			delay_ms(30);
 
 		}	//Fin if boton
 
@@ -214,13 +233,14 @@ int main(void){
 
 		}
 
+
 		if(banderaCondicion == 0){
 			switch(banderaBarrido){
 			case 1:{
 				GPIO_WritePin(&handlerColumna1, SET);
 				GPIO_WritePin(&handlerColumna2, RESET);
 				GPIO_WritePin(&handlerColumna3, RESET);
-//				GPIO_WritePin(&handlerColumna4, RESET);
+				GPIO_WritePin(&handlerColumna4, RESET);
 				banderaCondicion = 1;
 				break;
 			}
@@ -228,7 +248,7 @@ int main(void){
 				GPIO_WritePin(&handlerColumna1, RESET);
 				GPIO_WritePin(&handlerColumna2, SET);
 				GPIO_WritePin(&handlerColumna3, RESET);
-//				GPIO_WritePin(&handlerColumna4, RESET);
+				GPIO_WritePin(&handlerColumna4, RESET);
 				banderaCondicion = 1;
 				break;
 			}
@@ -236,21 +256,21 @@ int main(void){
 				GPIO_WritePin(&handlerColumna1, RESET);
 				GPIO_WritePin(&handlerColumna2, RESET);
 				GPIO_WritePin(&handlerColumna3, SET);
-//				GPIO_WritePin(&handlerColumna4, RESET);
+				GPIO_WritePin(&handlerColumna4, RESET);
+//				banderaBarrido = 0;
 				banderaCondicion = 1;
-				banderaBarrido = 0;
 				break;
 
 			}
-//			case 4:{
-//				GPIO_WritePin(&handlerColumna1, RESET);
-//				GPIO_WritePin(&handlerColumna2, RESET);
-//				GPIO_WritePin(&handlerColumna3, RESET);
-//				GPIO_WritePin(&handlerColumna4, SET);
-//				banderaCondicion = 1;
-//				banderaBarrido = 0;
-//				break;
-//			}
+			case 4:{
+				GPIO_WritePin(&handlerColumna1, RESET);
+				GPIO_WritePin(&handlerColumna2, RESET);
+				GPIO_WritePin(&handlerColumna3, RESET);
+				GPIO_WritePin(&handlerColumna4, SET);
+				banderaCondicion = 1;
+				banderaBarrido = 0;
+				break;
+			}
 			default:{
 				__NOP();
 			}
@@ -284,7 +304,7 @@ void init_hardware(void){
 	handlerColumna1.GPIO_PinConfig.GPIO_PinPuPdControl 	= GPIO_PUPDR_NOTHING;
 
 	GPIO_Config(&handlerColumna1);		//Cargar la configuración
-	GPIO_WritePin(&handlerColumna1, RESET);
+//	GPIO_WritePin(&handlerColumna1, RESET);
 
 
 	//Configurar la C2 -> PB0
@@ -297,7 +317,7 @@ void init_hardware(void){
 	handlerColumna2.GPIO_PinConfig.GPIO_PinPuPdControl 	= GPIO_PUPDR_NOTHING;
 
 	GPIO_Config(&handlerColumna2);		//Cargar la configuración
-	GPIO_WritePin(&handlerColumna2, RESET);
+//	GPIO_WritePin(&handlerColumna2, RESET);
 
 
 	//Configurar la C3 -> PC13
@@ -310,18 +330,18 @@ void init_hardware(void){
 	handlerColumna3.GPIO_PinConfig.GPIO_PinPuPdControl 	= GPIO_PUPDR_NOTHING;
 
 	GPIO_Config(&handlerColumna3);		//Cargar la configuración
-	GPIO_WritePin(&handlerColumna3, RESET);
+//	GPIO_WritePin(&handlerColumna3, RESET);
 
-//	//Configurar la C4 -> PC2
-//
-//	handlerColumna4.pGPIOx 								= GPIOC;
-//	handlerColumna4.GPIO_PinConfig.GPIO_PinNumber 		= PIN_2;
-//	handlerColumna4.GPIO_PinConfig.GPIO_PinMode			= GPIO_MODE_OUT;
-//	handlerColumna4.GPIO_PinConfig.GPIO_PinOPType 		= GPIO_OTYPE_PUSHPULL;
-//	handlerColumna4.GPIO_PinConfig.GPIO_PinSpeed 		= GPIO_OSPEED_FAST;
-//	handlerColumna4.GPIO_PinConfig.GPIO_PinPuPdControl 	= GPIO_PUPDR_NOTHING;
-//
-//	GPIO_Config(&handlerColumna4);		//Cargar la configuración
+	//Configurar la C4 -> PC2
+
+	handlerColumna4.pGPIOx 								= GPIOC;
+	handlerColumna4.GPIO_PinConfig.GPIO_PinNumber 		= PIN_2;
+	handlerColumna4.GPIO_PinConfig.GPIO_PinMode			= GPIO_MODE_OUT;
+	handlerColumna4.GPIO_PinConfig.GPIO_PinOPType 		= GPIO_OTYPE_PUSHPULL;
+	handlerColumna4.GPIO_PinConfig.GPIO_PinSpeed 		= GPIO_OSPEED_FAST;
+	handlerColumna4.GPIO_PinConfig.GPIO_PinPuPdControl 	= GPIO_PUPDR_NOTHING;
+
+	GPIO_Config(&handlerColumna4);		//Cargar la configuración
 
 
 	handlerLED2.pGPIOx 										= GPIOA;
@@ -435,7 +455,7 @@ void init_hardware(void){
 	handlerEXTI5_monedas.pGPIOHandler = &handlerRecepMonedas;
 	handlerEXTI5_monedas.edgeType = EXTERNAL_INTERRUPT_RISING_EDGE;
 
-	//Cargar la configuración del exti y GPIO para la F1
+	//Cargar la configuración del exti y GPIO
 	extInt_Config(&handlerEXTI5_monedas);
 
 	//Configuración de la comunicación serial:
@@ -507,7 +527,7 @@ void BasicTimer4_Callback(void){
 }
 
 void callback_extInt3(void){	// F1
-	boton = identificarF1();
+	identificarF1();
 //	if(llenarCasilla == 1){
 //		casilla[0] = boton;
 //		casilla1OK = 1;
@@ -521,7 +541,7 @@ void callback_extInt3(void){	// F1
 }
 
 void callback_extInt4(void){	//F2
-	boton = identificarF2();
+	identificarF2();
 //	if(llenarCasilla == 1){
 //		casilla[0] = boton;
 //		casilla1OK = 1;
@@ -535,7 +555,7 @@ void callback_extInt4(void){	//F2
 }
 
 void callback_extInt1(void){	//F3
-	boton = identificarF3();
+	identificarF3();
 //	if(llenarCasilla == 1){
 //		casilla[0] = boton;
 //		casilla1OK = 1;
@@ -549,7 +569,7 @@ void callback_extInt1(void){	//F3
 }
 
 void callback_extInt0(void){	//F4
-	boton = identificarF4();
+	identificarF4();
 //	if(llenarCasilla == 1){
 //		casilla[0] = boton;
 //		casilla1OK = 1;
@@ -579,101 +599,97 @@ void usart2Rx_Callback(void){
 }
 
 
-char identificarF1(void){
+void identificarF1(void){
 	switch(banderaBarrido){
 	case 1:{
-		return 1;
+		boton = 1;
 		break;
 	}
 	case 2:{
-		return 2;
+		boton = 2;
 		break;
 	}
 	case 3:{
-		return 3;
+		boton = 3;
 		break;
 	}
-//	case 4:{
-//		return 'A';
-//		break;
-//	}
+	case 4:{
+		boton = 'A';
+		break;
+	}
 	default:{
-		return 0;
 		break;
 	}
 	}
 }
 
-char identificarF2(void){
+void identificarF2(void){
 	switch(banderaBarrido){
 	case 1:{
-		return 4;
+		boton = 4;
 		break;
 	}
 	case 2:{
-		return 5;
+		boton = 5;
 		break;
 	}
 	case 3:{
-		return 6;
+		boton = 6;
 		break;
 	}
-//	case 4:{
-//		return 'B';
-//		break;
-//	}
+	case 4:{
+		boton = 'B';
+		break;
+	}
 	default:{
-		return 0;
 		break;
 	}
 	}
 }
 
-char identificarF3(void){
+void identificarF3(void){
 	switch(banderaBarrido){
 	case 1:{
-		return 7;
+		boton = 7;
 		break;
 	}
 	case 2:{
-		return 8;
+		boton = 8;
 		break;
 	}
 	case 3:{
-		return 9;
+		boton = 9;
 		break;
 	}
-//	case 4:{
-//		return 'C';
-//		break;
-//	}
+	case 4:{
+		boton = 'C';
+		break;
+	}
 	default:{
-		return 0;
 		break;
 	}
 	}
 }
 
-char identificarF4(void){
+void identificarF4(void){
 	switch(banderaBarrido){
 	case 1:{
-		return '*';
+		boton = '*';
 		break;
 	}
 	case 2:{
-		return 0;
+		boton = 0;
 		break;
 	}
 	case 3:{
-		return '#';
+		boton = '#';
 		break;
 	}
-//	case 4:{
-//		return 'D';
-//		break;
-//	}
+	case 4:{
+		boton = 'D';
+		break;
+	}
 	default:{
-		return 0;
 		break;
 	}
 	}
