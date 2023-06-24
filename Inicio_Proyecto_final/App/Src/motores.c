@@ -212,9 +212,6 @@ void init_hardware(void){
 //	startPwmSignal(&handlerPWM_Motor1);
 
 
-
-
-
 //	//Motor 2
 	handlerMotor2.pGPIOx								= GPIOC;
 	handlerMotor2.GPIO_PinConfig.GPIO_PinNumber			= PIN_9;
