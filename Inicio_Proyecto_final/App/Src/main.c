@@ -96,6 +96,8 @@ GPIO_Handler_t handlerPinTX 			= {0};
 GPIO_Handler_t handlerPinRX 			= {0};
 uint8_t usart2DataReceived = 0;
 char bufferMsg[100] = {0};
+char bufferIngrese[100] = {0};
+char bufferIngresado[100] = {0};
 
 //Elementos para el manejo de la pantalla OLED
 GPIO_Handler_t handlerOledSDA = {0};
@@ -118,6 +120,12 @@ GPIO_Handler_t handlerMotor4			= {0};
 PWM_Handler_t handlerPWM_Motor4			= {0};
 uint8_t motorActivo = 0;
 
+//Elementos para la verificación del producto
+GPIO_Handler_t handlerEstadoC1 = {0};
+EXTI_Config_t handlerEXTIC1 = {0};
+uint8_t auxEXTI = 0;
+uint8_t producto = 1;
+
 char dummyMsg[64] = {0};
 
 // Cabeceras de funciones
@@ -135,8 +143,8 @@ int main(void){
 	delay_ms(10);
 	initOled(&handlerOLED);
 	delay_ms(10);
-//	sprintf(bufferMsg, "  BIENVENIDO       OPRIMA BOTON");
-	OLED_print_msg(&handlerOLED, "BIENVENIDO $ : =");
+
+	OLED_print_msg(&handlerOLED, "   BIENVENIDO    SELECCIONE UNA     CASILLA");
 
 
 	while(1){
@@ -151,26 +159,30 @@ int main(void){
 
 				delay_ms(2000);
 				clearScreenOLED(&handlerOLED);
-				sprintf(bufferMsg, "INGRESE $%u", PRECIO_CELDA1);
-				OLED_print_msg_pag(&handlerOLED, 3, bufferMsg);
+				sprintf(bufferIngrese, "INGRESE $%u", PRECIO_CELDA1);
+				OLED_print_msg_pag(&handlerOLED, 3, bufferIngrese);
+
 				dinero = 0;
-				while(flagMoneda != 1){
+				while (flagMoneda != 1) {
 					__NOP();
 				}
-//				flagMoneda =0;
 
 				while (dinero < PRECIO_CELDA1) {
-					if(flagMoneda){
+					if (flagMoneda) {
 						dinero += 500;
 						clearScreenOLED(&handlerOLED);
-						sprintf(bufferMsg, "DINERO INGRESADO = $ %u ", dinero);
-						OLED_print_msg(&handlerOLED, bufferMsg);
-						flagMoneda =0;
+
+						sprintf(bufferIngrese, "INGRESE $%u", PRECIO_CELDA1);
+						OLED_print_msg_pag2(&handlerOLED, 1, bufferIngrese);
+
+						sprintf(bufferIngresado, "INGRESADO $%u ", dinero);
+						OLED_print_msg_pag2(&handlerOLED,3, bufferIngresado);
+						flagMoneda = 0;
 					}
 				}
 				delay_ms(1000);
 				clearScreenOLED(&handlerOLED);
-				OLED_print_msg(&handlerOLED, "ENTREGANDO PRODUCTO");
+				OLED_print_msg(&handlerOLED, "   ENTREGANDO       PRODUCTO");
 				enableOutput(&handlerPWM_Motor1);
 				conteoServo = 0;
 
@@ -179,9 +191,9 @@ int main(void){
 				}
 				disableOutput(&handlerPWM_Motor1);
 				clearScreenOLED(&handlerOLED);
-				OLED_print_msg(&handlerOLED, "GRACIAS POR SU COMPRA");
+				OLED_print_msg(&handlerOLED, "     GRACIAS      POR SU COMPRA");
 				delay_ms(1000);
-				OLED_print_msg(&handlerOLED, "BIENVENIDO SELECCIONE UNA CASILLA");
+				OLED_print_msg(&handlerOLED, "   BIENVENIDO    SELECCIONE UNA     CASILLA");
 				flagMoneda = 0;
 				break;
 				}
@@ -193,8 +205,8 @@ int main(void){
 
 				delay_ms(2000);
 				clearScreenOLED(&handlerOLED);
-				sprintf(bufferMsg, "INGRESE $%u", PRECIO_CELDA2);
-				OLED_print_msg_pag(&handlerOLED, 3, bufferMsg);
+				sprintf(bufferIngrese, "INGRESE $%u", PRECIO_CELDA2);
+				OLED_print_msg_pag(&handlerOLED, 3, bufferIngrese);
 				dinero = 0;
 
 				while(flagMoneda != 1){
@@ -206,14 +218,18 @@ int main(void){
 					if(flagMoneda){
 						dinero+= 500;
 						clearScreenOLED(&handlerOLED);
-						sprintf(bufferMsg, "DINERO INGRESADO = $ %u ", dinero);
-						OLED_print_msg(&handlerOLED, bufferMsg);
+
+						sprintf(bufferIngrese, "INGRESE $%u", PRECIO_CELDA2);
+						OLED_print_msg_pag2(&handlerOLED, 1, bufferIngrese);
+
+						sprintf(bufferIngresado, "INGRESADO $%u ", dinero);
+						OLED_print_msg_pag2(&handlerOLED, 3, bufferIngresado);
 						flagMoneda = 0;
 					}
 				}
 				delay_ms(1000);
 				clearScreenOLED(&handlerOLED);
-				OLED_print_msg(&handlerOLED, "ENTREGANDO PRODUCTO");
+				OLED_print_msg(&handlerOLED, "   ENTREGANDO       PRODUCTO");
 				enableOutput(&handlerPWM_Motor2);
 				conteoServo = 0;
 
@@ -224,9 +240,9 @@ int main(void){
 
 				disableOutput(&handlerPWM_Motor2);
 				clearScreenOLED(&handlerOLED);
-				OLED_print_msg(&handlerOLED, "GRACIAS POR SU COMPRA");
+				OLED_print_msg(&handlerOLED, "     GRACIAS      POR SU COMPRA");
 				delay_ms(1000);
-				OLED_print_msg(&handlerOLED, "BIENVENIDO SELECCIONE UNA CASILLA");
+				OLED_print_msg(&handlerOLED, "   BIENVENIDO    SELECCIONE UNA     CASILLA");
 				flagMoneda = 0;
 				break;
 			}
@@ -238,8 +254,8 @@ int main(void){
 
 				delay_ms(2000);
 				clearScreenOLED(&handlerOLED);
-				sprintf(bufferMsg, "INGRESE $%u", PRECIO_CELDA3);
-				OLED_print_msg_pag(&handlerOLED, 3, bufferMsg);
+				sprintf(bufferIngrese, "INGRESE $%u", PRECIO_CELDA3);
+				OLED_print_msg_pag(&handlerOLED, 3, bufferIngrese);
 				dinero = 0;
 
 				while(flagMoneda != 1){
@@ -250,14 +266,18 @@ int main(void){
 					if(flagMoneda){
 						dinero+= 500;
 						clearScreenOLED(&handlerOLED);
-						sprintf(bufferMsg, "DINERO INGRESADO = $ %u", dinero);
-						OLED_print_msg(&handlerOLED, bufferMsg);
+
+						sprintf(bufferIngrese, "INGRESE $%u", PRECIO_CELDA3);
+						OLED_print_msg_pag2(&handlerOLED, 1, bufferIngrese);
+
+						sprintf(bufferIngresado, "INGRESADO $%u", dinero);
+						OLED_print_msg_pag2(&handlerOLED, 3, bufferIngresado);
 						flagMoneda = 0;
 					}
 				}
 				delay_ms(1000);
 				clearScreenOLED(&handlerOLED);
-				OLED_print_msg(&handlerOLED, "ENTREGANDO PRODUCTO");
+				OLED_print_msg(&handlerOLED, "   ENTREGANDO       PRODUCTO");
 				enableOutput(&handlerPWM_Motor3);
 				conteoServo = 0;
 
@@ -267,9 +287,9 @@ int main(void){
 
 				disableOutput(&handlerPWM_Motor3);
 				clearScreenOLED(&handlerOLED);
-				OLED_print_msg(&handlerOLED, "GRACIAS POR SU COMPRA");
+				OLED_print_msg(&handlerOLED,      "GRACIAS      POR SU COMPRA");
 				delay_ms(1000);
-				OLED_print_msg(&handlerOLED, "BIENVENIDO SELECCIONE UNA CASILLA");
+				OLED_print_msg(&handlerOLED, "   BIENVENIDO    SELECCIONE UNA     CASILLA");
 				flagMoneda = 0;
 				break;
 
@@ -282,8 +302,8 @@ int main(void){
 
 				delay_ms(2000);
 				clearScreenOLED(&handlerOLED);
-				sprintf(bufferMsg, "INGRESE $%u", PRECIO_CELDA4);
-				OLED_print_msg_pag(&handlerOLED, 3, bufferMsg);
+				sprintf(bufferIngrese, "INGRESE $%u", PRECIO_CELDA4);
+				OLED_print_msg_pag(&handlerOLED, 3, bufferIngrese);
 				dinero = 0;
 
 				while(flagMoneda != 1){
@@ -294,14 +314,18 @@ int main(void){
 					if(flagMoneda){
 						dinero+= 500;
 						clearScreenOLED(&handlerOLED);
-						sprintf(bufferMsg, "DINERO INGRESADO = $ %u", dinero);
-						OLED_print_msg(&handlerOLED, bufferMsg);
+
+						sprintf(bufferIngrese, "INGRESE $%u", PRECIO_CELDA4);
+						OLED_print_msg_pag2(&handlerOLED, 1, bufferIngrese);
+
+						sprintf(bufferIngresado, "INGRESADO $%u", dinero);
+						OLED_print_msg_pag2(&handlerOLED, 3, bufferIngresado);
 						flagMoneda = 0;
 					}
 				}
 				delay_ms(1000);
 				clearScreenOLED(&handlerOLED);
-				OLED_print_msg(&handlerOLED, "ENTREGANDO PRODUCTO");
+				OLED_print_msg(&handlerOLED, "   ENTREGANDO       PRODUCTO");
 				enableOutput(&handlerPWM_Motor4);
 				conteoServo = 0;
 
@@ -310,9 +334,9 @@ int main(void){
 				}
 				disableOutput(&handlerPWM_Motor4);
 				clearScreenOLED(&handlerOLED);
-				OLED_print_msg(&handlerOLED, "GRACIAS POR SU COMPRA");
+				OLED_print_msg(&handlerOLED, "     GRACIAS      POR SU COMPRA");
 				delay_ms(1000);
-				OLED_print_msg(&handlerOLED, "BIENVENIDO SELECCIONE UNA CASILLA");
+				OLED_print_msg(&handlerOLED, "   BIENVENIDO    SELECCIONE UNA     CASILLA");
 				flagMoneda = 0;
 				break;
 			}
@@ -763,10 +787,20 @@ void init_hardware(void){
 
 	disableOutput(&handlerPWM_Motor4);
 
-
-
-
-
+//	//Elementos para la verificación del producto
+//	handlerEstadoC1.pGPIOx 									= GPIOA;
+//	handlerEstadoC1.GPIO_PinConfig.GPIO_PinNumber 			= PIN_7;
+//	handlerEstadoC1.GPIO_PinConfig.GPIO_PinMode				= GPIO_MODE_IN;
+//	handlerEstadoC1.GPIO_PinConfig.GPIO_PinSpeed 			= GPIO_OSPEED_FAST;
+//	handlerEstadoC1.GPIO_PinConfig.GPIO_PinPuPdControl 		= GPIO_PUPDR_NOTHING;
+//
+//	//Configuración del EXTI
+//
+//	handlerEXTIC1.pGPIOHandler = &handlerEstadoC1;
+//	handlerEXTIC1.edgeType = EXTERNAL_INTERRUPT_RISING_EDGE;
+//
+//	//Cargar la configuración del exti y GPIO para la F1
+//	extInt_Config(&handlerEXTIC1);
 
 }
 
@@ -834,6 +868,12 @@ void callback_extInt0(void){	//F4
 //		casillaCompleta = 1;
 //	}
 }
+
+//void callback_extInt7(void){
+//	auxEXTI = 1;
+//	producto = 0;
+//	//Cuando NO hay producto, la variable es igual 1
+//}
 
 void BasicTimer2_Callback(void){
 	GPIO_TooglePin(&handlerLED2);
