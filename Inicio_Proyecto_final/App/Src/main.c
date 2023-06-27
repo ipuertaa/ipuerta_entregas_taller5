@@ -3,7 +3,7 @@
  * @file           : main.c
  * @author         : Isabel Puerta Alvarez
 
-	Programación del teclado matricial
+	Programación del proyecto MÁQUINA EXPENDEDORA
  ******************************************************************************
  */
 
@@ -11,6 +11,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
 #include "GPIOxDriver.h"
 #include "BasicTimer.h"
 #include "ExtiDriver.h"
@@ -36,6 +37,7 @@ uint8_t banderaCondicion = 1;
 uint8_t flagFilas  = 0;
 uint8_t flagMoneda = 0;
 uint16_t dinero = 0;
+uint8_t flagCelda = 0;
 
 #define PRECIO_CELDA1  	1000
 #define PRECIO_CELDA2  	2500
@@ -47,11 +49,22 @@ uint16_t dinero = 0;
 #define PASOS_SERVO3	70
 #define PASOS_SERVO4	80
 
+#define PASOS_SERVO1REV	60
+#define PASOS_SERVO2REV	70
+#define PASOS_SERVO3REV	60
+#define PASOS_SERVO4REV	70
+
+#define DUTTY_DIRECTA	1000
+#define DUTTY_INVERSA	1700
+
 char boton = 10;
-char casilla[2] = {0};
-uint8_t llenarCasilla = 0;
-uint8_t casillaCompleta = 0;
-uint8_t contenidoOK = 0;
+char clave[6] = {0,8,8,9,0};
+char bufferClave[6] = {0};
+uint8_t modoAdmin = 0;
+uint8_t clave_i = 0;
+uint8_t llenarClave = 0;
+uint8_t claveCompleta = 0;
+uint8_t claveOK = 0;
 
 uint16_t conteoServo = 0;
 
@@ -98,6 +111,7 @@ uint8_t usart2DataReceived = 0;
 char bufferMsg[100] = {0};
 char bufferIngrese[100] = {0};
 char bufferIngresado[100] = {0};
+char bufferPrintClave[100] = {0};
 
 //Elementos para el manejo de la pantalla OLED
 GPIO_Handler_t handlerOledSDA = {0};
@@ -125,6 +139,10 @@ GPIO_Handler_t handlerEstadoC1 = {0};
 EXTI_Config_t handlerEXTIC1 = {0};
 uint8_t auxEXTI = 0;
 uint8_t producto = 1;
+uint8_t inventarioC1 = 0;
+uint8_t inventarioC2 = 1;
+uint8_t inventarioC3 = 1;
+uint8_t inventarioC4 = 1;
 
 char dummyMsg[64] = {0};
 
@@ -149,249 +167,725 @@ int main(void){
 
 	while(1){
 
-		if(boton != 10){
-
+		if((boton != 10)){
 			switch (boton){
 			case 1:{
-				clearScreenOLED(&handlerOLED);
-				sprintf(bufferMsg, "CASILLA %u ACTIVA", boton);
-				OLED_print_msg_pag(&handlerOLED, 2, bufferMsg);
+//				delay_ms(20);
+				if(llenarClave == 1){	//MODO CLAVE
+					bufferClave[clave_i] = boton;
+					sprintf(bufferPrintClave, "%u %u %u %u", bufferClave[1], bufferClave[2], bufferClave[3], bufferClave[4]);
+					OLED_print_msg(&handlerOLED, bufferPrintClave);
 
-				delay_ms(2000);
-				clearScreenOLED(&handlerOLED);
-				sprintf(bufferIngrese, "INGRESE $%u", PRECIO_CELDA1);
-				OLED_print_msg_pag(&handlerOLED, 3, bufferIngrese);
-
-				dinero = 0;
-				while (flagMoneda != 1) {
-					__NOP();
 				}
 
-				while (dinero < PRECIO_CELDA1) {
-					if (flagMoneda) {
-						dinero += 500;
+				else if(modoAdmin == 1){	//MODO ADMIN
+					updateDuttyCycle(&handlerPWM_Motor1, DUTTY_INVERSA);
+//					delay_ms(1000);
+					clearScreenOLED(&handlerOLED);
+					OLED_print_msg(&handlerOLED, "RELLENAR");
+					inventarioC1++;
+					delay_ms(1000);
+					enableOutput(&handlerPWM_Motor1);
+					conteoServo = 0;
+
+					while (conteoServo < PASOS_SERVO1REV) {
+						__NOP();
+					}
+					disableOutput(&handlerPWM_Motor1);
+					clearScreenOLED(&handlerOLED);
+					OLED_print_msg(&handlerOLED, "CARGA COMPLETADA");
+				}
+
+				else{	//MODO VENTAS
+					updateDuttyCycle(&handlerPWM_Motor1, DUTTY_DIRECTA);
+					clearScreenOLED(&handlerOLED);
+					sprintf(bufferMsg, "CASILLA %u ACTIVA", boton);
+					OLED_print_msg_pag(&handlerOLED, 2, bufferMsg);
+
+					delay_ms(2000);
+					clearScreenOLED(&handlerOLED);
+					OLED_print_msg(&handlerOLED, "VERIFICANDO EXISTENCIAS");
+
+					if(inventarioC1 != 0){
+						delay_ms(2000);
 						clearScreenOLED(&handlerOLED);
-
 						sprintf(bufferIngrese, "INGRESE $%u", PRECIO_CELDA1);
-						OLED_print_msg_pag2(&handlerOLED, 1, bufferIngrese);
+						OLED_print_msg_pag(&handlerOLED, 3, bufferIngrese);
 
-						sprintf(bufferIngresado, "INGRESADO $%u ", dinero);
-						OLED_print_msg_pag2(&handlerOLED,3, bufferIngresado);
+						dinero = 0;
+						while (flagMoneda != 1) {
+							__NOP();
+						}
+
+						while (dinero < PRECIO_CELDA1) {
+							if (flagMoneda) {
+								dinero += 500;
+								clearScreenOLED(&handlerOLED);
+
+								sprintf(bufferIngrese, "INGRESE $%u", PRECIO_CELDA1);
+								OLED_print_msg_pag2(&handlerOLED, 1, bufferIngrese);
+
+								sprintf(bufferIngresado, "INGRESADO $%u ", dinero);
+								OLED_print_msg_pag2(&handlerOLED,3, bufferIngresado);
+								flagMoneda = 0;
+							}
+						}
+						delay_ms(1000);
+						clearScreenOLED(&handlerOLED);
+						OLED_print_msg(&handlerOLED, "   ENTREGANDO       PRODUCTO");
+						inventarioC1--;
+
+
+						enableOutput(&handlerPWM_Motor1);
+						conteoServo = 0;
+
+						while (conteoServo < PASOS_SERVO1) {
+							__NOP();
+						}
+						disableOutput(&handlerPWM_Motor1);
+						clearScreenOLED(&handlerOLED);
+						OLED_print_msg(&handlerOLED, "     GRACIAS      POR SU COMPRA");
+						delay_ms(1000);
+						OLED_print_msg(&handlerOLED, "   BIENVENIDO    SELECCIONE UNA     CASILLA");
 						flagMoneda = 0;
 					}
-				}
-				delay_ms(1000);
-				clearScreenOLED(&handlerOLED);
-				OLED_print_msg(&handlerOLED, "   ENTREGANDO       PRODUCTO");
-				enableOutput(&handlerPWM_Motor1);
-				conteoServo = 0;
 
-				while (conteoServo < PASOS_SERVO1) {
-					__NOP();
+					else{
+						delay_ms(1000);
+						clearScreenOLED(&handlerOLED);
+						OLED_print_msg(&handlerOLED, "NO HAY EXISTENCIAS");
+					}
+
+//					delay_ms(2000);
+//					clearScreenOLED(&handlerOLED);
+//					sprintf(bufferIngrese, "INGRESE $%u", PRECIO_CELDA1);
+//					OLED_print_msg_pag(&handlerOLED, 3, bufferIngrese);
+//
+//					dinero = 0;
+//					while (flagMoneda != 1) {
+//						__NOP();
+//					}
+//
+//					while (dinero < PRECIO_CELDA1) {
+//						if (flagMoneda) {
+//							dinero += 500;
+//							clearScreenOLED(&handlerOLED);
+//
+//							sprintf(bufferIngrese, "INGRESE $%u", PRECIO_CELDA1);
+//							OLED_print_msg_pag2(&handlerOLED, 1, bufferIngrese);
+//
+//							sprintf(bufferIngresado, "INGRESADO $%u ", dinero);
+//							OLED_print_msg_pag2(&handlerOLED,3, bufferIngresado);
+//							flagMoneda = 0;
+//						}
+//					}
+//					delay_ms(1000);
+//					clearScreenOLED(&handlerOLED);
+//					OLED_print_msg(&handlerOLED, "   ENTREGANDO       PRODUCTO");
+//
+//					updateDuttyCycle(&handlerPWM_Motor2, DUTTY_DIRECTA);
+//					enableOutput(&handlerPWM_Motor1);
+//					conteoServo = 0;
+//
+//					while (conteoServo < PASOS_SERVO1) {
+//						__NOP();
+//					}
+//					disableOutput(&handlerPWM_Motor1);
+//					clearScreenOLED(&handlerOLED);
+//					OLED_print_msg(&handlerOLED, "     GRACIAS      POR SU COMPRA");
+//					delay_ms(1000);
+//					OLED_print_msg(&handlerOLED, "   BIENVENIDO    SELECCIONE UNA     CASILLA");
+//					flagMoneda = 0;
 				}
-				disableOutput(&handlerPWM_Motor1);
-				clearScreenOLED(&handlerOLED);
-				OLED_print_msg(&handlerOLED, "     GRACIAS      POR SU COMPRA");
-				delay_ms(1000);
-				OLED_print_msg(&handlerOLED, "   BIENVENIDO    SELECCIONE UNA     CASILLA");
-				flagMoneda = 0;
 				break;
-				}
+				}	//Fin case 1
 
 			case 2:{
-				clearScreenOLED(&handlerOLED);
-				sprintf(bufferMsg, "CASILLA %u ACTIVA", boton);
-				OLED_print_msg_pag(&handlerOLED, 2, bufferMsg);
-
-				delay_ms(2000);
-				clearScreenOLED(&handlerOLED);
-				sprintf(bufferIngrese, "INGRESE $%u", PRECIO_CELDA2);
-				OLED_print_msg_pag(&handlerOLED, 3, bufferIngrese);
-				dinero = 0;
-
-				while(flagMoneda != 1){
-					__NOP();
+//				delay_ms(20);
+				if(llenarClave == 1){	//MODO CLAVE
+					bufferClave[clave_i] = boton;
+					sprintf(bufferPrintClave, "%u %u %u %u", bufferClave[1], bufferClave[2], bufferClave[3], bufferClave[4]);
+					OLED_print_msg(&handlerOLED, bufferPrintClave);
 				}
 
-				while(dinero < PRECIO_CELDA2){
+				else if(modoAdmin == 1){	//MODO ADMIN
+					updateDuttyCycle(&handlerPWM_Motor2, DUTTY_INVERSA);
+//					delay_ms(1000);
+					clearScreenOLED(&handlerOLED);
+					OLED_print_msg(&handlerOLED, "RELLENAR");
+					inventarioC2++;
+					delay_ms(1000);
+					enableOutput(&handlerPWM_Motor2);
+					conteoServo = 0;
 
-					if(flagMoneda){
-						dinero+= 500;
+					while (conteoServo < PASOS_SERVO2REV) {
+						__NOP();
+					}
+					disableOutput(&handlerPWM_Motor2);
+					clearScreenOLED(&handlerOLED);
+					OLED_print_msg(&handlerOLED, "CARGA COMPLETADA");
+				}
+
+				else{	//MODO VENTAS
+					updateDuttyCycle(&handlerPWM_Motor2, DUTTY_DIRECTA);
+					clearScreenOLED(&handlerOLED);
+					sprintf(bufferMsg, "CASILLA %u ACTIVA", boton);
+					OLED_print_msg_pag(&handlerOLED, 2, bufferMsg);
+
+					delay_ms(2000);
+					clearScreenOLED(&handlerOLED);
+					OLED_print_msg(&handlerOLED, "VERIFICANDO EXISTENCIAS");
+
+					if(inventarioC2 != 0){
+						delay_ms(2000);
 						clearScreenOLED(&handlerOLED);
-
 						sprintf(bufferIngrese, "INGRESE $%u", PRECIO_CELDA2);
-						OLED_print_msg_pag2(&handlerOLED, 1, bufferIngrese);
+						OLED_print_msg_pag(&handlerOLED, 3, bufferIngrese);
+						dinero = 0;
 
-						sprintf(bufferIngresado, "INGRESADO $%u ", dinero);
-						OLED_print_msg_pag2(&handlerOLED, 3, bufferIngresado);
+						while(flagMoneda != 1){
+							__NOP();
+						}
+
+						while(dinero < PRECIO_CELDA2){
+
+							if(flagMoneda){
+								dinero+= 500;
+								clearScreenOLED(&handlerOLED);
+
+								sprintf(bufferIngrese, "INGRESE $%u", PRECIO_CELDA2);
+								OLED_print_msg_pag2(&handlerOLED, 1, bufferIngrese);
+
+								sprintf(bufferIngresado, "INGRESADO $%u ", dinero);
+								OLED_print_msg_pag2(&handlerOLED, 3, bufferIngresado);
+								flagMoneda = 0;
+							}
+						}
+						delay_ms(1000);
+						clearScreenOLED(&handlerOLED);
+						OLED_print_msg(&handlerOLED, "   ENTREGANDO       PRODUCTO");
+						inventarioC2--;
+						enableOutput(&handlerPWM_Motor2);
+						conteoServo = 0;
+
+
+						while (conteoServo < PASOS_SERVO2){
+							__NOP();
+						}
+
+						disableOutput(&handlerPWM_Motor2);
+						clearScreenOLED(&handlerOLED);
+						OLED_print_msg(&handlerOLED, "     GRACIAS      POR SU COMPRA");
+						delay_ms(1000);
+						OLED_print_msg(&handlerOLED, "   BIENVENIDO    SELECCIONE UNA     CASILLA");
 						flagMoneda = 0;
 					}
+
+					else{
+						delay_ms(1000);
+						clearScreenOLED(&handlerOLED);
+						OLED_print_msg(&handlerOLED, "NO HAY EXISTENCIAS");
+					}
+
+//					delay_ms(2000);
+//					clearScreenOLED(&handlerOLED);
+//					sprintf(bufferIngrese, "INGRESE $%u", PRECIO_CELDA2);
+//					OLED_print_msg_pag(&handlerOLED, 3, bufferIngrese);
+//					dinero = 0;
+//
+//					while(flagMoneda != 1){
+//						__NOP();
+//					}
+//
+//					while(dinero < PRECIO_CELDA2){
+//
+//						if(flagMoneda){
+//							dinero+= 500;
+//							clearScreenOLED(&handlerOLED);
+//
+//							sprintf(bufferIngrese, "INGRESE $%u", PRECIO_CELDA2);
+//							OLED_print_msg_pag2(&handlerOLED, 1, bufferIngrese);
+//
+//							sprintf(bufferIngresado, "INGRESADO $%u ", dinero);
+//							OLED_print_msg_pag2(&handlerOLED, 3, bufferIngresado);
+//							flagMoneda = 0;
+//						}
+//					}
+//					delay_ms(1000);
+//					clearScreenOLED(&handlerOLED);
+//					OLED_print_msg(&handlerOLED, "   ENTREGANDO       PRODUCTO");
+//					updateDuttyCycle(&handlerPWM_Motor2, DUTTY_DIRECTA);
+//					enableOutput(&handlerPWM_Motor2);
+//					conteoServo = 0;
+//
+//
+//					while (conteoServo < PASOS_SERVO2){
+//						__NOP();
+//					}
+//
+//					disableOutput(&handlerPWM_Motor2);
+//					clearScreenOLED(&handlerOLED);
+//					OLED_print_msg(&handlerOLED, "     GRACIAS      POR SU COMPRA");
+//					delay_ms(1000);
+//					OLED_print_msg(&handlerOLED, "   BIENVENIDO    SELECCIONE UNA     CASILLA");
+//					flagMoneda = 0;
 				}
-				delay_ms(1000);
-				clearScreenOLED(&handlerOLED);
-				OLED_print_msg(&handlerOLED, "   ENTREGANDO       PRODUCTO");
-				enableOutput(&handlerPWM_Motor2);
-				conteoServo = 0;
-
-
-				while (conteoServo < PASOS_SERVO2){
-					__NOP();
-				}
-
-				disableOutput(&handlerPWM_Motor2);
-				clearScreenOLED(&handlerOLED);
-				OLED_print_msg(&handlerOLED, "     GRACIAS      POR SU COMPRA");
-				delay_ms(1000);
-				OLED_print_msg(&handlerOLED, "   BIENVENIDO    SELECCIONE UNA     CASILLA");
-				flagMoneda = 0;
 				break;
 			}
 			case 3:{
-				clearScreenOLED(&handlerOLED);
-				sprintf(bufferMsg, "CASILLA %u ACTIVA", boton);
-				OLED_print_msg_pag(&handlerOLED, 2, bufferMsg);
-
-
-				delay_ms(2000);
-				clearScreenOLED(&handlerOLED);
-				sprintf(bufferIngrese, "INGRESE $%u", PRECIO_CELDA3);
-				OLED_print_msg_pag(&handlerOLED, 3, bufferIngrese);
-				dinero = 0;
-
-				while(flagMoneda != 1){
-					__NOP();
+//				delay_ms(20);
+				if(llenarClave == 1){	//MODO CLAVE
+					bufferClave[clave_i] = boton;
+					sprintf(bufferPrintClave, "%u %u %u %u", bufferClave[1], bufferClave[2], bufferClave[3], bufferClave[4]);
+					OLED_print_msg(&handlerOLED, bufferPrintClave);
 				}
 
-				while(dinero < PRECIO_CELDA3){
-					if(flagMoneda){
-						dinero+= 500;
+				else if(modoAdmin == 1){	//MODO ADMIN
+					updateDuttyCycle(&handlerPWM_Motor3, DUTTY_INVERSA);
+//					delay_ms(1000);
+					clearScreenOLED(&handlerOLED);
+					OLED_print_msg(&handlerOLED, "RELLENAR");
+					inventarioC3++;
+					delay_ms(1000);
+					enableOutput(&handlerPWM_Motor3);
+					conteoServo = 0;
+
+					while (conteoServo < PASOS_SERVO3REV) {
+						__NOP();
+					}
+					disableOutput(&handlerPWM_Motor3);
+					clearScreenOLED(&handlerOLED);
+					OLED_print_msg(&handlerOLED, "CARGA COMPLETADA");
+				}
+
+				else{	//MODO VENTAS
+					updateDuttyCycle(&handlerPWM_Motor3, DUTTY_DIRECTA);
+					clearScreenOLED(&handlerOLED);
+					sprintf(bufferMsg, "CASILLA %u ACTIVA", boton);
+					OLED_print_msg_pag(&handlerOLED, 2, bufferMsg);
+
+					delay_ms(2000);
+					clearScreenOLED(&handlerOLED);
+					OLED_print_msg(&handlerOLED, "VERIFICANDO EXISTENCIAS");
+
+					if(inventarioC3 != 0){
+						delay_ms(2000);
 						clearScreenOLED(&handlerOLED);
-
 						sprintf(bufferIngrese, "INGRESE $%u", PRECIO_CELDA3);
-						OLED_print_msg_pag2(&handlerOLED, 1, bufferIngrese);
+						OLED_print_msg_pag(&handlerOLED, 3, bufferIngrese);
+						dinero = 0;
 
-						sprintf(bufferIngresado, "INGRESADO $%u", dinero);
-						OLED_print_msg_pag2(&handlerOLED, 3, bufferIngresado);
+						while(flagMoneda != 1){
+							__NOP();
+						}
+
+						while(dinero < PRECIO_CELDA3){
+							if(flagMoneda){
+								dinero+= 500;
+								clearScreenOLED(&handlerOLED);
+
+								sprintf(bufferIngrese, "INGRESE $%u", PRECIO_CELDA3);
+								OLED_print_msg_pag2(&handlerOLED, 1, bufferIngrese);
+
+								sprintf(bufferIngresado, "INGRESADO $%u", dinero);
+								OLED_print_msg_pag2(&handlerOLED, 3, bufferIngresado);
+								flagMoneda = 0;
+							}
+						}
+						delay_ms(1000);
+						clearScreenOLED(&handlerOLED);
+						OLED_print_msg(&handlerOLED, "   ENTREGANDO       PRODUCTO");
+						inventarioC3--;
+						enableOutput(&handlerPWM_Motor3);
+						conteoServo = 0;
+
+						while(conteoServo < PASOS_SERVO3){
+							__NOP();
+						}
+
+						disableOutput(&handlerPWM_Motor3);
+						clearScreenOLED(&handlerOLED);
+						OLED_print_msg(&handlerOLED,      "GRACIAS      POR SU COMPRA");
+						delay_ms(1000);
+						OLED_print_msg(&handlerOLED, "   BIENVENIDO    SELECCIONE UNA     CASILLA");
 						flagMoneda = 0;
 					}
-				}
-				delay_ms(1000);
-				clearScreenOLED(&handlerOLED);
-				OLED_print_msg(&handlerOLED, "   ENTREGANDO       PRODUCTO");
-				enableOutput(&handlerPWM_Motor3);
-				conteoServo = 0;
 
-				while(conteoServo < PASOS_SERVO3){
-					__NOP();
-				}
+					else{
+						delay_ms(1000);
+						clearScreenOLED(&handlerOLED);
+						OLED_print_msg(&handlerOLED, "NO HAY EXISTENCIAS");
+					}
 
-				disableOutput(&handlerPWM_Motor3);
-				clearScreenOLED(&handlerOLED);
-				OLED_print_msg(&handlerOLED,      "GRACIAS      POR SU COMPRA");
-				delay_ms(1000);
-				OLED_print_msg(&handlerOLED, "   BIENVENIDO    SELECCIONE UNA     CASILLA");
-				flagMoneda = 0;
+
+//					delay_ms(2000);
+//					clearScreenOLED(&handlerOLED);
+//					sprintf(bufferIngrese, "INGRESE $%u", PRECIO_CELDA3);
+//					OLED_print_msg_pag(&handlerOLED, 3, bufferIngrese);
+//					dinero = 0;
+//
+//					while(flagMoneda != 1){
+//						__NOP();
+//					}
+//
+//					while(dinero < PRECIO_CELDA3){
+//						if(flagMoneda){
+//							dinero+= 500;
+//							clearScreenOLED(&handlerOLED);
+//
+//							sprintf(bufferIngrese, "INGRESE $%u", PRECIO_CELDA3);
+//							OLED_print_msg_pag2(&handlerOLED, 1, bufferIngrese);
+//
+//							sprintf(bufferIngresado, "INGRESADO $%u", dinero);
+//							OLED_print_msg_pag2(&handlerOLED, 3, bufferIngresado);
+//							flagMoneda = 0;
+//						}
+//					}
+//					delay_ms(1000);
+//					clearScreenOLED(&handlerOLED);
+//					OLED_print_msg(&handlerOLED, "   ENTREGANDO       PRODUCTO");
+//					updateDuttyCycle(&handlerPWM_Motor2, DUTTY_DIRECTA);
+//					enableOutput(&handlerPWM_Motor3);
+//					conteoServo = 0;
+//
+//					while(conteoServo < PASOS_SERVO3){
+//						__NOP();
+//					}
+//
+//					disableOutput(&handlerPWM_Motor3);
+//					clearScreenOLED(&handlerOLED);
+//					OLED_print_msg(&handlerOLED,      "GRACIAS      POR SU COMPRA");
+//					delay_ms(1000);
+//					OLED_print_msg(&handlerOLED, "   BIENVENIDO    SELECCIONE UNA     CASILLA");
+//					flagMoneda = 0;
+				}
 				break;
 
 			}
 
 			case 4:{
-				clearScreenOLED(&handlerOLED);
-				sprintf(bufferMsg, "CASILLA %u ACTIVA", boton);
-				OLED_print_msg_pag(&handlerOLED, 2, bufferMsg);
-
-				delay_ms(2000);
-				clearScreenOLED(&handlerOLED);
-				sprintf(bufferIngrese, "INGRESE $%u", PRECIO_CELDA4);
-				OLED_print_msg_pag(&handlerOLED, 3, bufferIngrese);
-				dinero = 0;
-
-				while(flagMoneda != 1){
-					__NOP();
+//				delay_ms(20);
+				if(llenarClave == 1){	//MODO CLAVE
+					bufferClave[clave_i] = boton;
+					sprintf(bufferPrintClave, "%u %u %u %u", bufferClave[1], bufferClave[2], bufferClave[3], bufferClave[4]);
+					OLED_print_msg(&handlerOLED, bufferPrintClave);
 				}
 
-				while(dinero < PRECIO_CELDA4){
-					if(flagMoneda){
-						dinero+= 500;
+				else if(modoAdmin == 1){	//MODO ADMIN
+					updateDuttyCycle(&handlerPWM_Motor4, DUTTY_INVERSA);
+//					delay_ms(1000);
+					clearScreenOLED(&handlerOLED);
+					OLED_print_msg(&handlerOLED, "RELLENAR");
+					inventarioC4++;
+					delay_ms(1000);
+					enableOutput(&handlerPWM_Motor4);
+					conteoServo = 0;
+
+					while (conteoServo < PASOS_SERVO4REV) {
+						__NOP();
+					}
+					disableOutput(&handlerPWM_Motor4);
+					clearScreenOLED(&handlerOLED);
+					OLED_print_msg(&handlerOLED, "CARGA COMPLETADA");
+				}
+
+				else{	//MODO VENTAS
+					updateDuttyCycle(&handlerPWM_Motor4, DUTTY_DIRECTA);
+					clearScreenOLED(&handlerOLED);
+					sprintf(bufferMsg, "CASILLA %u ACTIVA", boton);
+					OLED_print_msg_pag(&handlerOLED, 2, bufferMsg);
+
+					delay_ms(2000);
+					clearScreenOLED(&handlerOLED);
+					OLED_print_msg(&handlerOLED, "VERIFICANDO EXISTENCIAS");
+
+					if(inventarioC4 != 0){
+						delay_ms(2000);
 						clearScreenOLED(&handlerOLED);
-
 						sprintf(bufferIngrese, "INGRESE $%u", PRECIO_CELDA4);
-						OLED_print_msg_pag2(&handlerOLED, 1, bufferIngrese);
+						OLED_print_msg_pag(&handlerOLED, 3, bufferIngrese);
+						dinero = 0;
 
-						sprintf(bufferIngresado, "INGRESADO $%u", dinero);
-						OLED_print_msg_pag2(&handlerOLED, 3, bufferIngresado);
+						while(flagMoneda != 1){
+							__NOP();
+						}
+
+						while(dinero < PRECIO_CELDA4){
+							if(flagMoneda){
+								dinero+= 500;
+								clearScreenOLED(&handlerOLED);
+
+								sprintf(bufferIngrese, "INGRESE $%u", PRECIO_CELDA4);
+								OLED_print_msg_pag2(&handlerOLED, 1, bufferIngrese);
+
+								sprintf(bufferIngresado, "INGRESADO $%u", dinero);
+								OLED_print_msg_pag2(&handlerOLED, 3, bufferIngresado);
+								flagMoneda = 0;
+							}
+						}
+						delay_ms(1000);
+						clearScreenOLED(&handlerOLED);
+						OLED_print_msg(&handlerOLED, "   ENTREGANDO       PRODUCTO");
+						inventarioC4--;
+						enableOutput(&handlerPWM_Motor4);
+						conteoServo = 0;
+
+						while(conteoServo < PASOS_SERVO4){
+							__NOP();
+						}
+						disableOutput(&handlerPWM_Motor4);
+						clearScreenOLED(&handlerOLED);
+						OLED_print_msg(&handlerOLED, "     GRACIAS      POR SU COMPRA");
+						delay_ms(1000);
+						OLED_print_msg(&handlerOLED, "   BIENVENIDO    SELECCIONE UNA     CASILLA");
 						flagMoneda = 0;
 					}
-				}
-				delay_ms(1000);
-				clearScreenOLED(&handlerOLED);
-				OLED_print_msg(&handlerOLED, "   ENTREGANDO       PRODUCTO");
-				enableOutput(&handlerPWM_Motor4);
-				conteoServo = 0;
 
-				while(conteoServo < PASOS_SERVO4){
-					__NOP();
+					else{
+						delay_ms(1000);
+						clearScreenOLED(&handlerOLED);
+						OLED_print_msg(&handlerOLED, "NO HAY EXISTENCIAS");
+					}
+
+
+
+//					delay_ms(2000);
+//					clearScreenOLED(&handlerOLED);
+//					sprintf(bufferIngrese, "INGRESE $%u", PRECIO_CELDA4);
+//					OLED_print_msg_pag(&handlerOLED, 3, bufferIngrese);
+//					dinero = 0;
+//
+//					while(flagMoneda != 1){
+//						__NOP();
+//					}
+//
+//					while(dinero < PRECIO_CELDA4){
+//						if(flagMoneda){
+//							dinero+= 500;
+//							clearScreenOLED(&handlerOLED);
+//
+//							sprintf(bufferIngrese, "INGRESE $%u", PRECIO_CELDA4);
+//							OLED_print_msg_pag2(&handlerOLED, 1, bufferIngrese);
+//
+//							sprintf(bufferIngresado, "INGRESADO $%u", dinero);
+//							OLED_print_msg_pag2(&handlerOLED, 3, bufferIngresado);
+//							flagMoneda = 0;
+//						}
+//					}
+//					delay_ms(1000);
+//					clearScreenOLED(&handlerOLED);
+//					OLED_print_msg(&handlerOLED, "   ENTREGANDO       PRODUCTO");
+//					updateDuttyCycle(&handlerPWM_Motor2, DUTTY_DIRECTA);
+//					enableOutput(&handlerPWM_Motor4);
+//					conteoServo = 0;
+//
+//					while(conteoServo < PASOS_SERVO4){
+//						__NOP();
+//					}
+//					disableOutput(&handlerPWM_Motor4);
+//					clearScreenOLED(&handlerOLED);
+//					OLED_print_msg(&handlerOLED, "     GRACIAS      POR SU COMPRA");
+//					delay_ms(1000);
+//					OLED_print_msg(&handlerOLED, "   BIENVENIDO    SELECCIONE UNA     CASILLA");
+//					flagMoneda = 0;
 				}
-				disableOutput(&handlerPWM_Motor4);
-				clearScreenOLED(&handlerOLED);
-				OLED_print_msg(&handlerOLED, "     GRACIAS      POR SU COMPRA");
-				delay_ms(1000);
-				OLED_print_msg(&handlerOLED, "   BIENVENIDO    SELECCIONE UNA     CASILLA");
-				flagMoneda = 0;
 				break;
 			}
 			case 5:{
-				clearScreenOLED(&handlerOLED);
-				sprintf(dummyMsg, "CASILLA %u NA", boton);
-				OLED_print_msg_pag(&handlerOLED, 2, dummyMsg);
+				delay_ms(20);
+				if(llenarClave == 1){
+					bufferClave[clave_i] = boton;
+					sprintf(bufferPrintClave, "%u %u %u %u", bufferClave[1], bufferClave[2], bufferClave[3], bufferClave[4]);
+					OLED_print_msg(&handlerOLED, bufferPrintClave);
+				}
+				else{
+					clearScreenOLED(&handlerOLED);
+					sprintf(dummyMsg, "CASILLA %u NA", boton);
+					OLED_print_msg_pag(&handlerOLED, 2, dummyMsg);
+				}
 				break;
 			}
 			case 6:{
-				clearScreenOLED(&handlerOLED);
-				sprintf(dummyMsg, "CASILLA %u NA", boton);
-				OLED_print_msg_pag(&handlerOLED, 2, dummyMsg);
+				delay_ms(20);
+				if(llenarClave == 1){
+					bufferClave[clave_i] = boton;
+					sprintf(bufferPrintClave, "%u %u %u %u", bufferClave[1], bufferClave[2], bufferClave[3], bufferClave[4]);
+					OLED_print_msg(&handlerOLED, bufferPrintClave);
+				}
+
+				else{
+					clearScreenOLED(&handlerOLED);
+					sprintf(dummyMsg, "CASILLA %u NA", boton);
+					OLED_print_msg_pag(&handlerOLED, 2, dummyMsg);
+				}
 				break;
 			}
 
 			case 7:{
-				clearScreenOLED(&handlerOLED);
-				sprintf(dummyMsg, "CASILLA %u NA", boton);
-				OLED_print_msg_pag(&handlerOLED, 2, dummyMsg);
+				delay_ms(20);
+				if(llenarClave == 1){
+					bufferClave[clave_i] = boton;
+					sprintf(bufferPrintClave, "%u %u %u %u", bufferClave[1], bufferClave[2], bufferClave[3], bufferClave[4]);
+					OLED_print_msg(&handlerOLED, bufferPrintClave);
+				}
+
+				else{
+					clearScreenOLED(&handlerOLED);
+					sprintf(dummyMsg, "CASILLA %u NA", boton);
+					OLED_print_msg_pag(&handlerOLED, 2, dummyMsg);
+				}
 				break;
 			}
 			case 8:{
-				clearScreenOLED(&handlerOLED);
-				sprintf(dummyMsg, "CASILLA %u NA", boton);
-				OLED_print_msg_pag(&handlerOLED, 2, dummyMsg);
+				delay_ms(20);
+				if(llenarClave == 1){
+					bufferClave[clave_i] = boton;
+					sprintf(bufferPrintClave, "%u %u %u %u", bufferClave[1], bufferClave[2], bufferClave[3], bufferClave[4]);
+					OLED_print_msg(&handlerOLED, bufferPrintClave);
+				}
+
+				else{
+					clearScreenOLED(&handlerOLED);
+					sprintf(dummyMsg, "CASILLA %u NA", boton);
+					OLED_print_msg_pag(&handlerOLED, 2, dummyMsg);
+				}
 				break;
 			}
 			case 9:{
-				clearScreenOLED(&handlerOLED);
-				sprintf(dummyMsg, "CASILLA %u NA", boton);
-				OLED_print_msg_pag(&handlerOLED, 2, dummyMsg);
+				delay_ms(20);
+				if(llenarClave == 1){
+					bufferClave[clave_i] = boton;
+					sprintf(bufferPrintClave, "%u %u %u %u", bufferClave[1], bufferClave[2], bufferClave[3], bufferClave[4]);
+					OLED_print_msg(&handlerOLED, bufferPrintClave);
+				}
+				else{
+					clearScreenOLED(&handlerOLED);
+					sprintf(dummyMsg, "CASILLA %u NA", boton);
+					OLED_print_msg_pag(&handlerOLED, 2, dummyMsg);
+				}
+
 				break;
 			}
 			case 0:{
-				clearScreenOLED(&handlerOLED);
-				sprintf(dummyMsg, "CASILLA %u NA", boton);
-				OLED_print_msg_pag(&handlerOLED, 2, dummyMsg);
+				delay_ms(20);
+				if(llenarClave == 1){
+					bufferClave[clave_i] = boton;
+					sprintf(bufferPrintClave, "%u %u %u %u", bufferClave[1], bufferClave[2], bufferClave[3], bufferClave[4]);
+					OLED_print_msg(&handlerOLED, bufferPrintClave);
+				}
+				else{
+					clearScreenOLED(&handlerOLED);
+					sprintf(dummyMsg, "CASILLA %u NA", boton);
+					OLED_print_msg_pag(&handlerOLED, 2, dummyMsg);
+				}
+
 				break;
 			}
 			case '*':{
-				clearScreenOLED(&handlerOLED);
-				sprintf(bufferMsg, "CASILLA * ACTIVA");
-				OLED_print_msg_pag(&handlerOLED, 2, bufferMsg);
-				break;
 
+				if(modoAdmin == 1){
+					clearScreenOLED(&handlerOLED);
+					OLED_print_msg_pag(&handlerOLED, 3, "MODO ADMIN OF");
+					modoAdmin = 0;
+				}
+
+				else{
+					clearScreenOLED(&handlerOLED);
+					OLED_print_msg_pag(&handlerOLED, 3, "   MODO RECARGA");
+	//				delay_ms(1000);
+					llenarClave = 1;
+					clave_i = 0;
+				}
+				break;
+			}
+			case '#':{
+				if(llenarClave == 1){
+					llenarClave = 0;
+					clearScreenOLED(&handlerOLED);
+					OLED_print_msg_pag(&handlerOLED, 3, "   VERIFICANDO CLAVE ");
+					delay_ms(1000);
+
+					for(uint8_t j = 0; j < 6; j++){
+						if(clave[j] == bufferClave[j]){
+							claveOK = 1;
+						}
+						else{
+							claveOK = 0;
+							j = 7;
+						}
+					}
+
+					if(claveOK == 1){
+						modoAdmin = 1;
+						for(uint8_t i = 0; i < 6; i++){
+							bufferClave[i] = 0;
+						}
+						clearScreenOLED(&handlerOLED);
+						OLED_print_msg_pag(&handlerOLED, 3, "CLAVE CORRECTA");
+						delay_ms(1000);
+						clearScreenOLED(&handlerOLED);
+						OLED_print_msg(&handlerOLED, "MODO ADMINISTRADOR");
+	//					delay_ms(1000);
+					}
+					else{
+						modoAdmin = 0;
+						clearScreenOLED(&handlerOLED);
+						OLED_print_msg_pag(&handlerOLED, 3, "CLAVE ERRONEA");
+						for(uint8_t i = 0; i < 6; i++){
+							bufferClave[i] = 0;
+						}
+					}
+				}
+				else{
+					clearScreenOLED(&handlerOLED);
+					OLED_print_msg(&handlerOLED, "TECLA NUMERAL");
+				}
+//				llenarClave = 0;
+//				clearScreenOLED(&handlerOLED);
+//				OLED_print_msg_pag(&handlerOLED, 3, "   VERIFICANDO CLAVE ");
+//				delay_ms(1000);
+//
+//				for(uint8_t j = 0; j < 6; j++){
+//					if(clave[j] == bufferClave[j]){
+//						claveOK = 1;
+//					}
+//					else{
+//						claveOK = 0;
+//						j = 7;
+//					}
+//				}
+//
+//				if(claveOK == 1){
+//					modoAdmin = 1;
+//					for(uint8_t i = 0; i < 6; i++){
+//						bufferClave[i] = 0;
+//					}
+//					clearScreenOLED(&handlerOLED);
+//					OLED_print_msg_pag(&handlerOLED, 3, "CLAVE CORRECTA");
+//					delay_ms(1000);
+//					clearScreenOLED(&handlerOLED);
+//					OLED_print_msg(&handlerOLED, "MODO ADMINISTRADOR");
+////					delay_ms(1000);
+//				}
+//				else{
+//					modoAdmin = 0;
+//					clearScreenOLED(&handlerOLED);
+//					OLED_print_msg_pag(&handlerOLED, 3, "CLAVE ERRONEA");
+//					for(uint8_t i = 0; i < 6; i++){
+//						bufferClave[i] = 0;
+//					}
+//				}
+				break;
 			}
 
 			default:{
 				clearScreenOLED(&handlerOLED);
-				OLED_print_msg(&handlerOLED, "ERROR");
+				OLED_print_msg(&handlerOLED, "ERROR DEFAULT");
 				break;
 			}
 
 			}
+
 			boton = 10;
 			delay_ms(30);
 
@@ -704,7 +1198,7 @@ void init_hardware(void){
 	handlerPWM_Motor1.config.channel					= PWM_CHANNEL_1;
 	handlerPWM_Motor1.config.periodo					= 20000;
 	handlerPWM_Motor1.config.prescaler					= 16;
-	handlerPWM_Motor1.config.duttyCicle					= 1000;
+	handlerPWM_Motor1.config.duttyCicle					= DUTTY_DIRECTA;
 
 	pwm_Config(&handlerPWM_Motor1);
 	startPwmSignal(&handlerPWM_Motor1); //habilito todo el periferico
@@ -730,7 +1224,7 @@ void init_hardware(void){
 	handlerPWM_Motor2.config.channel					= PWM_CHANNEL_4;
 	handlerPWM_Motor2.config.periodo					= 20000;
 	handlerPWM_Motor2.config.prescaler					= 16;
-	handlerPWM_Motor2.config.duttyCicle					= 1000;
+	handlerPWM_Motor2.config.duttyCicle					= DUTTY_DIRECTA;
 
 	pwm_Config(&handlerPWM_Motor2);
 
@@ -755,7 +1249,7 @@ void init_hardware(void){
 	handlerPWM_Motor3.config.channel					= PWM_CHANNEL_3;
 	handlerPWM_Motor3.config.periodo					= 20000;
 	handlerPWM_Motor3.config.prescaler					= 16;
-	handlerPWM_Motor3.config.duttyCicle					= 1000;
+	handlerPWM_Motor3.config.duttyCicle					= DUTTY_DIRECTA;
 
 	pwm_Config(&handlerPWM_Motor3);
 
@@ -781,7 +1275,7 @@ void init_hardware(void){
 	handlerPWM_Motor4.config.channel					= PWM_CHANNEL_2;
 	handlerPWM_Motor4.config.periodo					= 20000;
 	handlerPWM_Motor4.config.prescaler					= 16;
-	handlerPWM_Motor4.config.duttyCicle					= 1000;
+	handlerPWM_Motor4.config.duttyCicle					= DUTTY_DIRECTA;
 
 	pwm_Config(&handlerPWM_Motor4);
 
@@ -802,7 +1296,7 @@ void init_hardware(void){
 //	//Cargar la configuración del exti y GPIO para la F1
 //	extInt_Config(&handlerEXTIC1);
 
-}
+}	//Fin init
 
 
 
@@ -813,59 +1307,59 @@ void BasicTimer4_Callback(void){
 
 }
 
-void callback_extInt3(void){	// F1
+void callback_extInt3(void) {	// F1
 	identificarF1();
-//	if(llenarCasilla == 1){
-//		casilla[0] = boton;
-//		casilla1OK = 1;
-//		llenarCasilla = 0;
-//	}
-//	else if(casilla1OK == 1){
-//		casilla[1] = boton;
-//		llenarCasilla = 0;
-//		casillaCompleta = 1;
+	clave_i++;
+//	if (llenarClave == 1) {
+//
+//		if (clave_i < 7) {
+//			bufferClave[clave_i] = boton;
+//			clave_i++;
+//		} else {
+//			claveCompleta = 1;
+//		}
 //	}
 }
 
-void callback_extInt4(void){	//F2
+void callback_extInt4(void) {	//F2
 	identificarF2();
-//	if(llenarCasilla == 1){
-//		casilla[0] = boton;
-//		casilla1OK = 1;
-//		llenarCasilla = 0;
-//	}
-//	else if(casilla1OK == 1){
-//		casilla[1] = boton;
-//		llenarCasilla = 0;
-//		casillaCompleta = 1;
+	clave_i++;
+//	if (llenarClave == 1) {
+//		bufferClave[clave_i] = boton;
+//		clave_i++;
+//		if(clave_i == 6){
+//			claveCompleta = 1;
+//		}
 //	}
 }
 
-void callback_extInt1(void){	//F3
+void callback_extInt1(void) {	//F3
 	identificarF3();
-//	if(llenarCasilla == 1){
-//		casilla[0] = boton;
-//		casilla1OK = 1;
-//		llenarCasilla = 0;
-//	}
-//	else if(casilla1OK == 1){
-//		casilla[1] = boton;
-//		llenarCasilla = 0;
-//		casillaCompleta = 1;
+	clave_i++;
+//	if (llenarClave == 1) {
+//
+//		if (clave_i < 7) {
+//			bufferClave[clave_i] = boton;
+//			clave_i++;
+//		}
+//		else {
+//			claveCompleta = 1;
+//		}
 //	}
 }
 
-void callback_extInt0(void){	//F4
+void callback_extInt0(void) {	//F4
 	identificarF4();
-//	if(llenarCasilla == 1){
-//		casilla[0] = boton;
-//		casilla1OK = 1;
-//		llenarCasilla = 0;
-//	}
-//	else if(casilla1OK == 1){
-//		casilla[1] = boton;
-//		llenarCasilla = 0;
-//		casillaCompleta = 1;
+	clave_i++;
+//	if (llenarClave == 1) {
+//
+//		if (clave_i < 7) {
+//			bufferClave[clave_i] = boton;
+//			clave_i++;
+//		} else {
+//			claveCompleta = 1;
+//		}
+//
 //	}
 }
 
@@ -992,11 +1486,29 @@ void identificarF4(void){
 	}
 }
 
-void limpiar_casilla(void){
-	for(uint8_t pos = 0; pos < 2; pos++){
-		casilla[pos] = 0;
-	}
-}
+//void limpiar_casilla(void){
+//	for(uint8_t pos = 0; pos < 2; pos++){
+//		casilla[pos] = 0;
+//	}
+//}
+
+//void recibirClase(void) {
+//	switch (clave_i) {
+//	case 0: {
+//		clave[0] = boton;
+//		clave_i++;
+//		break;
+//	}
+//	case 1: {
+//		clave[1] = boton;
+//		clave++;
+//		break;
+//	}
+//	case 3: {
+//		clave[3] = boton;
+//	}
+//	}
+//}
 
 
 
